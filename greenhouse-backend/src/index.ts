@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import sensorRoutes from './routes/sensors';
 import authRoutes from './routes/authRoutes';
+import settingsRoutes from './routes/settingsRoutes';
 import dataGenerator from './services/dataGenerator';
 
 
@@ -23,6 +24,7 @@ app.use(express.json());
 
 app.use('/api/sensors', sensorRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/settings', settingsRoutes);
 
 app.get('/', (req, res) => {
   res.send('Greenhouse Monitoring API is running');
