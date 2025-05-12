@@ -1,4 +1,5 @@
 import sensorModel, { SensorData } from '../models/sensorModel';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 
 class DataGeneratorService {
   private isRunning = false;
@@ -48,19 +49,16 @@ class DataGeneratorService {
       prediction = 'Alert';
     }
     
-    // Generate a timestamp with hard-coded 2023 year
     const now = new Date();
-    const year = 2023;
-    const month = now.getMonth();
-    const day = now.getDate();
-    const hours = now.getHours();
-    const minutes = now.getMinutes();
-    const seconds = now.getSeconds();
     
-    // Create timestamp string in ISO format with year set to 2023
-    const timestamp = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.000Z`;
+    // Use Denmark timezone (Europe/Copenhagen)
+    const timeZone = 'Europe/Copenhagen';
+    const denmarkTime = toZonedTime(now, timeZone);
     
-    console.log('Generated timestamp:', timestamp);
+    // Create ISO timestamp string based on Denmark time
+    const timestamp = formatInTimeZone(now, timeZone, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    
+    console.log(`Generated timestamp (${timeZone}):`, timestamp);
     
     const sensorData = {
       temperature: Number(newTemp.toFixed(1)),
@@ -77,22 +75,46 @@ class DataGeneratorService {
    * Save a new sensor reading to the database
    */
   private async saveReading() {
-    // Prevent multiple simultaneous data generations
+    // Check if already generating data
     if (this.isGenerating) {
-      console.log('Already generating data, skipping this cycle');
       return;
     }
     
-    console.log('Starting to save new sensor reading...');
     this.isGenerating = true;
     
-    try {
-      const sensorData = this.generateSensorReading();
-      console.log('Attempting to save to database...');
-      const insertId = await sensorModel.saveSensorData(sensorData);
-      console.log('Successfully saved sensor data with ID:', insertId);
-    } catch (error) {
-      console.error('Error generating and saving sensor data:', error);
+    try {      
+      // Generate random values
+      const temperature = Math.round((22 + Math.random() * 12) * 10) / 10; // 22.0-33.9
+      const humidity = Math.round((50 + Math.random() * 40) * 10) / 10; // 50.0-89.9
+      
+      // Calculate prediction based on temperature and humidity
+      let prediction: 'Normal' | 'Warning' | 'Alert' = 'Normal';
+      if (temperature > 30 || humidity > 80) {
+        prediction = 'Warning';
+      }
+      if (temperature > 32 || humidity > 85) {
+        prediction = 'Alert';
+      }
+      
+      // Get current time in Denmark timezone
+      const timeZone = 'Europe/Copenhagen';
+      const zonedTime = toZonedTime(new Date(), timeZone);
+      const timestamp = formatInTimeZone(zonedTime, timeZone, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+      
+      // Create sensor data record
+      const sensorData = {
+        temperature,
+        humidity,
+        prediction,
+        timestamp: timestamp
+      };
+      
+      // Save to database
+      try {
+        await sensorModel.saveSensorData(sensorData);
+      } catch (error) {
+        // Database error - just swallow for now
+      }
     } finally {
       this.isGenerating = false;
     }
@@ -103,11 +125,9 @@ class DataGeneratorService {
    */
   start() {
     if (this.isRunning) {
-      console.log('Data generator already running');
       return;
     }
     
-    console.log('Starting data generator service');
     this.isRunning = true;
     
     // Generate data immediately on start
@@ -115,11 +135,8 @@ class DataGeneratorService {
     
     // Then set up an interval for regular data generation
     this.intervalId = setInterval(() => {
-      console.log('Timer triggered, generating new data...');
       this.saveReading();
     }, this.intervalSeconds * 1000);
-    
-    console.log(`Data generator scheduled to run every ${this.intervalSeconds} seconds`);
   }
   
   /**
@@ -127,22 +144,19 @@ class DataGeneratorService {
    */
   stop() {
     if (!this.isRunning || !this.intervalId) {
-      console.log('Data generator not running');
       return;
     }
     
-    console.log('Stopping data generator service');
     clearInterval(this.intervalId);
     this.intervalId = null;
     this.isRunning = false;
   }
   
   /**
-   * Generate a single reading on demand
+   * Generate one reading on-demand
    */
   generateOnDemand() {
-    console.log('Generating data on demand');
-    return this.saveReading();
+    this.saveReading();
   }
 }
 

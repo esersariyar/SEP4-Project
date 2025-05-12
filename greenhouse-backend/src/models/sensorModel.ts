@@ -1,4 +1,6 @@
 import pool from '../config/db';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
+import { RowDataPacket } from 'mysql2';
 
 export interface SensorData {
   id?: number;
@@ -19,32 +21,53 @@ class SensorModel {
 
 
   async getHistoricalData(hours = 24, limit = 100): Promise<SensorData[]> {
-    console.log(`Fetching historical data for last ${hours} hours, limit: ${limit}`);
-
-    // Daha basit sorgu: sadece en son verileri LIMIT ile alalım ve saatlere göre filtrelemeyi frontend'de yapalım
-    const [rows] = await pool.query(
-      `SELECT * FROM sensor_data 
-       ORDER BY timestamp DESC
-       LIMIT ?`,
-      [limit]
-    );
-    
-    console.log(`Retrieved ${(rows as any[]).length} historical records`);
-    const data = rows as SensorData[];
-    
-    // Debug first few records
-    if (data.length > 0) {
-      console.log('First record timestamp:', data[0].timestamp);
-      if (data.length > 1) {
-        console.log('Last record timestamp:', data[data.length - 1].timestamp);
+    try {
+      const connection = await pool.getConnection();
+      
+      // First check if there's any data in the database
+      const [countResult] = await connection.query<RowDataPacket[]>('SELECT COUNT(*) as count FROM sensor_data');
+      const count = countResult[0].count;
+      
+      if (count === 0) {
+        // Database is empty
+        connection.release();
+        return [];
       }
+      
+      // Get timestamp for X hours ago in Denmark timezone
+      const now = new Date();
+      const hoursAgo = new Date(now.getTime() - (hours * 60 * 60 * 1000));
+      
+      // Format timestamps for MySQL query
+      const nowFormatted = now.toISOString().slice(0, 19).replace('T', ' ');
+      const hoursAgoFormatted = hoursAgo.toISOString().slice(0, 19).replace('T', ' ');
+      
+      // Query with limit
+      const [rows] = await connection.query<RowDataPacket[]>(
+        'SELECT * FROM sensor_data WHERE timestamp BETWEEN ? AND ? ORDER BY timestamp ASC LIMIT ?',
+        [hoursAgoFormatted, nowFormatted, limit]
+      );
+      
+      connection.release();
+      
+      // Map the rows to the SensorData type
+      const data: SensorData[] = rows.map((row: any) => ({
+        id: row.id,
+        temperature: row.temperature,
+        humidity: row.humidity,
+        prediction: row.prediction,
+        timestamp: row.timestamp
+      }));
+      
+      // If data is empty or less than needed
+      if (data.length === 0) {
+        return [];
+      }
+      
+      return data;
+    } catch (error) {
+      throw error;
     }
-
-    const sortedData = [...data].sort((a, b) => {
-      return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
-    });
-    
-    return sortedData;
   }
 
 
@@ -79,7 +102,7 @@ class SensorModel {
   async saveSensorData(data: SensorData): Promise<number> {
     const [result] = await pool.query(
       'INSERT INTO sensor_data (temperature, humidity, prediction, timestamp) VALUES (?, ?, ?, ?)',
-      [data.temperature, data.humidity, data.prediction, data.timestamp || new Date().toISOString()]
+      [data.temperature, data.humidity, data.prediction, data.timestamp || this.getCurrentDenmarkTimeISOString()]
     );
     return (result as any).insertId;
   }
@@ -98,7 +121,7 @@ class SensorModel {
       data.temperature, 
       data.humidity, 
       data.prediction, 
-      data.timestamp || new Date().toISOString()
+      data.timestamp || this.getCurrentDenmarkTimeISOString()
     ]);
     
     const query = `INSERT INTO sensor_data (temperature, humidity, prediction, timestamp) VALUES ${placeholders}`;
@@ -106,6 +129,15 @@ class SensorModel {
     const [result] = await pool.query(query, values);
     
     return (result as any).affectedRows || 0;
+  }
+
+  /**
+   * Helper method to get current time in Denmark timezone (Europe/Copenhagen)
+   */
+  private getCurrentDenmarkTimeISOString(): string {
+    const now = new Date();
+    const timeZone = 'Europe/Copenhagen';
+    return formatInTimeZone(now, timeZone, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
   }
 
   /**

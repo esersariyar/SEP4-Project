@@ -8,65 +8,85 @@ dotenv.config();
 
 const JWT_SECRET: Secret = process.env.JWT_SECRET || 'greenhouse-secret-key';
 
+// Define user payload type
+interface UserPayload {
+  id: number;
+  username: string;
+  [key: string]: any;
+}
 
 declare global {
   namespace Express {
     interface Request {
-      user?: any;
+      user?: UserPayload;
     }
   }
 }
 
 export const authenticateJWT = (req: Request, res: Response, next: NextFunction) => {
-
+  // Get auth header
   const authHeader = req.headers.authorization;
   
   if (!authHeader) {
-    return res.status(401).json({ 
-      success: false, 
-      message: 'Access denied. No token provided' 
+    res.status(401).json({
+      success: false,
+      message: 'No authentication token provided'
     });
+    return;
   }
-
+  
+  // Extract token from header
+  const parts = authHeader.split(' ');
+  
+  if (parts.length !== 2 || parts[0] !== 'Bearer') {
+    res.status(401).json({
+      success: false,
+      message: 'Token format invalid. Use: Bearer [token]'
+    });
+    return;
+  }
+  
+  const token = parts[1];
+  
+  // Try to verify token
   try {
-
-    const token = authHeader.split(' ')[1];
+    // For debugging: show payload without verification
+    const decodedWithoutVerify = jwt.decode(token);
     
-    if (!token) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Invalid token format' 
-      });
-    }
-
+    // Verify token
     const decoded = jwt.verify(token, JWT_SECRET);
     
-    req.user = decoded;
+    // Set user in request
+    req.user = decoded as UserPayload;
     
+    // Continue to next middleware/route handler
     next();
-  } catch (error) {
-    return res.status(401).json({ 
-      success: false, 
+  } catch (err) {
+    res.status(401).json({
+      success: false,
       message: 'Invalid or expired token'
     });
+    return;
   }
 };
 
 export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
   if (!req.user) {
-    return res.status(401).json({ 
+    res.status(401).json({ 
       success: false, 
       message: 'Authentication required' 
     });
+    return;
   }
 
 
   if (req.user.username === 'admin') {
     next();
   } else {
-    return res.status(403).json({ 
+    res.status(403).json({ 
       success: false, 
       message: 'Access denied. Admin privileges required' 
     });
+    return;
   }
 }; 

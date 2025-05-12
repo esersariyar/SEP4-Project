@@ -1,29 +1,55 @@
 import { Request, Response } from 'express';
 import sensorModel, { SensorData } from '../models/sensorModel';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
+import { format } from 'date-fns';
 
+// Denmark timezone
+const DENMARK_TIMEZONE = 'Europe/Copenhagen';
+
+/**
+ * Returns the current time in ISO format for Denmark timezone
+ */
+const getCurrentDenmarkTimeISOString = (): string => {
+  const now = new Date();
+  return formatInTimeZone(now, DENMARK_TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+};
 
 const mockCurrentData: SensorData = {
   id: 1,
   temperature: 24.5,
   humidity: 56.8,
   prediction: 'Normal',
-  timestamp: new Date().toISOString()
+  timestamp: getCurrentDenmarkTimeISOString()
 };
 
-const generateMockHistoricalData = (count = 24): SensorData[] => {
+const generateMockHistoricalData = (hours = 24): SensorData[] => {
   const data: SensorData[] = [];
   const now = new Date();
   
-  for (let i = 0; i < count; i++) {
+  // Create multiple data points per hour
+  // This ensures we have multiple points when "Last 1 Hour" is selected
+  const dataPointsPerHour = 5; // 5 data points per hour
+  const totalPoints = hours * dataPointsPerHour;
+  
+  for (let i = 0; i < totalPoints; i++) {
     const timestamp = new Date(now);
-    timestamp.setHours(now.getHours() - (count - 1 - i));
+    // Calculate more precise time intervals (minutes)
+    const minutesAgo = (totalPoints - 1 - i) * (60 / dataPointsPerHour);
+    timestamp.setMinutes(now.getMinutes() - minutesAgo);
+    
+    // Denmark timezone conversion
+    const denmarkTimestamp = formatInTimeZone(
+      timestamp, 
+      DENMARK_TIMEZONE, 
+      "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+    );
     
     data.push({
       id: i + 1,
       temperature: 20 + Math.random() * 10,
       humidity: 45 + Math.random() * 25,
       prediction: Math.random() > 0.7 ? 'Warning' : (Math.random() > 0.9 ? 'Alert' : 'Normal'),
-      timestamp: timestamp.toISOString()
+      timestamp: denmarkTimestamp
     });
   }
   
@@ -82,11 +108,9 @@ class SensorController {
 
   async getHistoricalData(req: Request, res: Response) {
     try {
-
       const range = (req.query.range as string) || '24h';
       let hours = 24; // Default to 24 hours
       
-
       switch (range) {
         case '1h':
           hours = 1;
@@ -110,42 +134,59 @@ class SensorController {
           hours = 24;
       }
       
-
       const limit = parseInt(req.query.limit as string) || 100;
       
       let sensorData: SensorData[];
       let source = 'database';
       
-      try {
-        sensorData = await sensorModel.getHistoricalData(hours, limit);
-        
-        if (!sensorData || sensorData.length === 0) {
-          throw new Error('No historical data available in database');
-        }
-      } catch (dbError) {
+      
+      // Get data from model
+      sensorData = await sensorModel.getHistoricalData(hours, limit);
+      
+      // Check if data exists
+      if (sensorData && sensorData.length > 0) {
+        // Data exists in database
+      } else {
+        // Use mock data if no data exists
         source = 'mock';
-        sensorData = generateMockHistoricalData(Math.min(hours, 100));
+        const mockDataPoints = Math.max(hours, 10);
+        sensorData = generateMockHistoricalData(mockDataPoints);
       }
       
-
+      // Check if data exists after mock generation
+      if (sensorData.length === 0) {
+        res.status(404).json({ message: 'No data found for this sensor' });
+        return;
+      }
+      
+      // Sort by timestamp
       const sortedData = sensorData.sort((a, b) => {
         const dateA = new Date(a.timestamp);
         const dateB = new Date(b.timestamp);
         return dateA.getTime() - dateB.getTime();
       });
       
-
+      // Apply sampling if exceeding limit
       let finalData = sortedData;
       if (sortedData.length > limit) {
         finalData = downsampleData(sortedData, limit);
       }
       
-
+      // Convert timestamps to user-friendly format
+      const formattedData = finalData.map(data => {
+        // Use ISO string format instead of custom formatting to avoid timezone issues
+        const timestamp = new Date(data.timestamp);
+        return {
+          ...data,
+          timestamp: timestamp.toISOString()
+        };
+      });
+      
       res.status(200).json({ 
-        data: finalData,
+        data: formattedData,
         range,
         hours,
-        count: finalData.length,
+        count: formattedData.length,
         _source: source
       });
     } catch (error) {
@@ -186,8 +227,6 @@ class SensorController {
       const daysToGenerate = 30;
       const intervalSeconds = 30;
       const totalRecords = (daysToGenerate * 24 * 60 * 60) / intervalSeconds;
-      
-      console.log(`Generating ${totalRecords} demo records spanning ${daysToGenerate} days...`);
       
       // Start from 30 days ago
       const startDate = new Date();
@@ -255,7 +294,6 @@ class SensorController {
           await sensorModel.saveSensorDataBatch(batch);
           recordsGenerated += batch.length;
           batch = [];
-          console.log(`Generated ${recordsGenerated} records so far...`);
         }
       }
       
@@ -270,7 +308,6 @@ class SensorController {
         message: `Successfully generated ${recordsGenerated} demo records spanning ${daysToGenerate} days`
       });
     } catch (error) {
-      console.error('Error generating demo data:', error);
       res.status(500).json({ 
         success: false,
         message: 'Server error generating demo data' 

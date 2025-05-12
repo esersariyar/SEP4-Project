@@ -1,61 +1,51 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import deviceRoutes from './routes/devices';
 import sensorRoutes from './routes/sensors';
 import authRoutes from './routes/authRoutes';
+import dataGeneratorService from './services/dataGenerator';
+import sensorController from './controllers/sensorController';
 import settingsRoutes from './routes/settingsRoutes';
-import dataGenerator from './services/dataGenerator';
 
-
+// Configure environment variables
 dotenv.config();
 
+// Create Express app
 const app = express();
-const PORT = process.env.PORT || 3000;
 
-
-app.use(cors({
-  origin: ['http://localhost:3001', 'http://127.0.0.1:3001', 'http://localhost:3000', 'http://127.0.0.1:3000'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-}));
+// Middleware
+app.use(cors());
 app.use(express.json());
 
-
+// Register routes
+app.use('/api/devices', deviceRoutes);
 app.use('/api/sensors', sensorRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/settings', settingsRoutes);
 
-app.get('/', (req, res) => {
-  res.send('Greenhouse Monitoring API is running');
-});
-
-// Test endpoint to generate data on demand
-app.get('/api/generate-test-data', (req, res) => {
+// Special routes for testing/development
+app.get('/api/generate-data', async (req, res) => {
   try {
-    console.log('Manual data generation requested');
-    dataGenerator.generateOnDemand();
-    res.status(200).json({ message: 'Data generation triggered. Check server logs for details.' });
+    await sensorController.generateDemoData(req, res);
   } catch (error) {
-    console.error('Error triggering data generation:', error);
-    res.status(500).json({ message: 'Error triggering data generation' });
+    res.status(500).json({ message: 'Error generating demo data' });
   }
 });
 
-// Explicitly start the data generator
-console.log('Starting data generator service from index.ts');
-dataGenerator.start();
+// Start data generator service
+dataGeneratorService.start();
 
-
+// Handle graceful shutdown
 process.on('SIGINT', () => {
-  console.log('Shutting down...');
-  dataGenerator.stop();
-  process.exit(0);
+  dataGeneratorService.stop();
+  process.exit();
 });
 
-
+// Start the server
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  // Server is running
 });
 
 export default app;

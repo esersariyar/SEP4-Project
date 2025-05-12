@@ -19,20 +19,22 @@ class AuthController {
 
 
       if (!username || !password) {
-        return res.status(400).json({ 
+        res.status(400).json({ 
           success: false,
           message: 'Username and password are required' 
         });
+        return;
       }
 
 
       const user = await userModel.authenticate(username, password);
       
       if (!user) {
-        return res.status(401).json({ 
+        res.status(401).json({ 
           success: false,
           message: 'Invalid credentials' 
         });
+        return;
       }
       
 
@@ -76,46 +78,51 @@ class AuthController {
 
 
       if (!username || !password) {
-        return res.status(400).json({ 
+        res.status(400).json({ 
           success: false,
           message: 'Username and password are required' 
         });
+        return;
       }
       
 
       if (!inviteCode) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Invitation code is required'
         });
+        return;
       }
       
 
       const inviter = await userModel.getUserByRefCode(inviteCode);
       if (!inviter) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Invalid invitation code'
         });
+        return;
       }
 
 
       const existingUser = await userModel.getUserByUsername(username);
       if (existingUser) {
-        return res.status(409).json({ 
+        res.status(409).json({ 
           success: false,
           message: 'Username already exists' 
         });
+        return;
       }
 
 
       const newUser = await userModel.createUser(username, password, firstName, lastName, inviteCode);
       
       if (!newUser) {
-        return res.status(500).json({ 
+        res.status(500).json({ 
           success: false,
           message: 'Failed to create user' 
         });
+        return;
       }
 
 
@@ -146,7 +153,7 @@ class AuthController {
       });
     } catch (error) {
       if (error instanceof Error && error.message.includes('duplicate')) {
-        return res.status(409).json({ 
+        res.status(409).json({ 
           success: false,
           message: 'Username already exists' 
         });
@@ -164,19 +171,21 @@ class AuthController {
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader) {
-        return res.status(401).json({ 
+        res.status(401).json({ 
           success: false,
           message: 'No token provided' 
         });
+        return;
       }
 
 
       const token = authHeader.split(' ')[1];
       if (!token) {
-        return res.status(401).json({ 
+        res.status(401).json({ 
           success: false,
           message: 'Invalid token format' 
         });
+        return;
       }
 
 
@@ -187,10 +196,11 @@ class AuthController {
         const user = await userModel.getUserById(decoded.id);
         
         if (!user) {
-          return res.status(404).json({ 
+          res.status(404).json({ 
             success: false,
             message: 'User not found' 
           });
+          return;
         }
         
         res.status(200).json({
@@ -204,10 +214,11 @@ class AuthController {
           }
         });
       } catch (error) {
-        return res.status(401).json({ 
+        res.status(401).json({ 
           success: false,
           message: 'Invalid or expired token' 
         });
+        return;
       }
     } catch (error) {
       res.status(500).json({ 

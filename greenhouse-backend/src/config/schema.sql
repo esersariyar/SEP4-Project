@@ -3,6 +3,10 @@ CREATE DATABASE IF NOT EXISTS greenhouse;
 
 USE greenhouse;
 
+-- Set timezone to Denmark (Europe/Copenhagen)
+SET GLOBAL time_zone = 'Europe/Copenhagen';
+SET time_zone = 'Europe/Copenhagen';
+
 -- Create sensor data table
 CREATE TABLE IF NOT EXISTS sensor_data (
   id INT AUTO_INCREMENT PRIMARY KEY,

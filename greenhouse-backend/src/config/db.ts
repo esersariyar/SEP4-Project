@@ -3,11 +3,11 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Default database configuration
-const DB_HOST = process.env.DB_HOST || 'localhost';
-const DB_USER = process.env.DB_USER || 'root';
-const DB_PASSWORD = process.env.DB_PASSWORD || '';
-const DB_NAME = process.env.DB_NAME || 'greenhouse';
+// Remote SQL server configuration
+const DB_HOST = process.env.DB_HOST || '77.37.35.74';
+const DB_USER = process.env.DB_USER || 'u127812886_greenhouse';
+const DB_PASSWORD = process.env.DB_PASSWORD || 'Viagreenhouse123';
+const DB_NAME = process.env.DB_NAME || 'u127812886_greenhouse';
 const DB_PORT = Number(process.env.DB_PORT) || 3306;
 
 // Create a connection pool to MySQL
@@ -19,7 +19,13 @@ const pool = mysql.createPool({
   port: DB_PORT,
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
+  queueLimit: 0,
+  connectTimeout: 60000,
+  ssl: {
+    rejectUnauthorized: false
+  },
+  // Denmark timezone
+  timezone: 'Europe/Copenhagen'
 });
 
 export default pool;
