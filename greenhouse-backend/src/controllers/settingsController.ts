@@ -13,6 +13,13 @@ const settingsController = {
   // Get user profile data
   async getUserProfile(req: Request, res: Response) {
     try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+      }
+      
       const userId = req.user.id;
       
       const [rows] = await pool.query(
@@ -45,6 +52,13 @@ const settingsController = {
   // Update user profile data
   async updateUserProfile(req: Request, res: Response) {
     try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+      }
+      
       const userId = req.user.id;
       const { firstName, lastName } = req.body;
       

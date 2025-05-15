@@ -7,6 +7,7 @@ import Home from './components/Home';
 import Header from './components/Header';
 import Login from './components/Login';
 import Devices from './components/Devices';
+import Settings from './components/Settings';
 
 interface User {
   id: number;
@@ -87,6 +88,11 @@ function App() {
             <Route path="/devices" element={
               <ProtectedRoute>
                 <Devices />
+              </ProtectedRoute>
+            } />
+            <Route path="/settings" element={
+              <ProtectedRoute>
+                <Settings />
               </ProtectedRoute>
             } />
             <Route path="*" element={<Navigate to="/" replace />} />

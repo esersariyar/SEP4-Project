@@ -154,11 +154,18 @@ export default function Settings() {
       try {
         const token = localStorage.getItem('token');
         
+        // Debug token ve güvenlik için ilk birkaç karakteri göster
+        console.log('Token exists:', !!token);
+        console.log('Token first 10 chars:', token ? token.substring(0, 10) + '...' : 'No token');
+        
         if (!token) {
           setError('Not authenticated');
           setLoading(false);
           return;
         }
+        
+        console.log('API URL:', API_URL);
+        console.log('Token:', token ? 'Token exists' : 'No token');
         
         const response = await fetch(`${API_URL}/api/settings`, {
           method: 'GET',
@@ -169,7 +176,9 @@ export default function Settings() {
         });
         
         if (!response.ok) {
-          throw new Error(`HTTP error ${response.status}`);
+          const errorMessage = `HTTP error ${response.status}: ${response.statusText}`;
+          console.error(errorMessage);
+          throw new Error(errorMessage);
         }
         
         const data = await response.json();
@@ -299,7 +308,7 @@ export default function Settings() {
         <Flex align="center" justify="center" gap={2} mb={{ base: 6, md: 8 }}>
           <Text fontSize={getHeaderSize()} fontWeight="bold" color="green.600" letterSpacing={1}>Settings</Text>
         </Flex>
-        <Tabs.Root defaultValue="profile" onValueChange={(tab: string) => { setActiveTab(tab); setConfirmation(null); }}>
+        <Tabs.Root defaultValue="profile" onValueChange={(details) => { setActiveTab(details.value); setConfirmation(null); }}>
           {confirmation && (
             <Alert.Root status={confirmation.type} mb={4}>
               <Alert.Indicator />

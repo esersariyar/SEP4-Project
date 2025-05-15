@@ -143,6 +143,22 @@ const Header: React.FC<HeaderProps> = ({ isLoggedIn, username, onLogout }) => {
                           Devices
                         </Link>
                       </Box>
+
+                      <Box py={2} px={1} borderRadius="md" _hover={{ bg: "green.50" }}>
+                        <Link 
+                          to="/settings"
+                          style={{
+                            textDecoration: 'none',
+                            color: location.pathname === '/settings' ? '#22c35e' : '#4a5568',
+                            fontWeight: location.pathname === '/settings' ? 'bold' : 'normal',
+                            display: 'block',
+                            width: '100%'
+                          }}
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          Settings
+                        </Link>
+                      </Box>
                       
                       <Box borderTop="1px" borderColor="gray.200" my={2} />
                       
@@ -224,6 +240,19 @@ const Header: React.FC<HeaderProps> = ({ isLoggedIn, username, onLogout }) => {
                     }}
                   >
                     Devices
+                  </Link>
+                </Box>
+
+                <Box>
+                  <Link 
+                    to="/settings"
+                    style={{
+                      textDecoration: 'none',
+                      color: location.pathname === '/settings' ? '#22c35e' : '#4a5568',
+                      fontWeight: location.pathname === '/settings' ? 'bold' : 'normal'
+                    }}
+                  >
+                    Settings
                   </Link>
                 </Box>
                 
