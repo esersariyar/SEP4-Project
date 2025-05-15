@@ -6,7 +6,11 @@ import Dashboard from './components/Dashboard';
 import Home from './components/Home';
 import Header from './components/Header';
 import Login from './components/Login';
+<<<<<<< HEAD
 import Settings from './components/Settings';
+=======
+import Devices from './components/Devices';
+>>>>>>> e73e0c2146ebe3398a6437605f8dcb5c6301d8a5
 
 interface User {
   id: number;
@@ -84,9 +88,15 @@ function App() {
                 <Dashboard />
               </ProtectedRoute>
             } />
+<<<<<<< HEAD
             <Route path="/settings" element= {
               <ProtectedRoute>
                 <Settings />
+=======
+            <Route path="/devices" element={
+              <ProtectedRoute>
+                <Devices />
+>>>>>>> e73e0c2146ebe3398a6437605f8dcb5c6301d8a5
               </ProtectedRoute>
             } />
             <Route path="*" element={<Navigate to="/" replace />} />
