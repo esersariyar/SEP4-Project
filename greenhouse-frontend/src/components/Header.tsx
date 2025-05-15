@@ -86,7 +86,6 @@ const Header: React.FC<HeaderProps> = ({ isLoggedIn, username, onLogout }) => {
                   Dashboard
                 </Link>
               </Box>
-              
               <Box>
                 <Link 
                   to="/devices"
@@ -99,9 +98,19 @@ const Header: React.FC<HeaderProps> = ({ isLoggedIn, username, onLogout }) => {
                   Devices
                 </Link>
               </Box>
-              
+              <Box>
+                <Link 
+                  to="/settings"
+                  style={{
+                    textDecoration: 'none',
+                    color: location.pathname === '/settings' ? '#22c35e' : '#4a5568',
+                    fontWeight: location.pathname === '/settings' ? 'bold' : 'normal'
+                  }}
+                >
+                  Settings
+                </Link>
+              </Box>
               <Box borderLeft="1px" borderColor="gray.200" height="20px" mx={2} />
-              
               <HStack gap={4}>
                 <Text fontSize="sm" color="gray.600">
                   Welcome, <Text as="span" fontWeight="bold">{username}</Text>
