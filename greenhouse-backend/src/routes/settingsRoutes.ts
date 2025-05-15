@@ -5,11 +5,14 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { RowDataPacket } from 'mysql2';
 
+// Import UserPayload from authMiddleware
+import { UserPayload } from '../middleware/authMiddleware';
+
 // Extend the Express Request type to include user
 declare global {
   namespace Express {
     interface Request {
-      user?: any;
+      user?: UserPayload;
     }
   }
 }
@@ -57,7 +60,7 @@ const authenticate = (req: Request, res: Response, next: NextFunction): void => 
       return;
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET) as UserPayload;
     req.user = decoded;
     next();
   } catch (error) {
@@ -74,6 +77,14 @@ const settingsController = {
   // Get user profile data
   getUserProfile: async (req: Request, res: Response): Promise<void> => {
     try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
+      
       const userId = req.user.id;
       
       const [rows] = await pool.query<UserRow[]>(
@@ -105,6 +116,14 @@ const settingsController = {
   // Update user profile data
   updateUserProfile: async (req: Request, res: Response): Promise<void> => {
     try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
+      
       const userId = req.user.id;
       const { firstName, lastName, currentPassword, newPassword } = req.body;
       

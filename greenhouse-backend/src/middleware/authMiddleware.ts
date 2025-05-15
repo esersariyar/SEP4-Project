@@ -9,7 +9,7 @@ dotenv.config();
 const JWT_SECRET: Secret = process.env.JWT_SECRET || 'greenhouse-secret-key';
 
 // Define user payload type
-interface UserPayload {
+export interface UserPayload {
   id: number;
   username: string;
   [key: string]: any;
