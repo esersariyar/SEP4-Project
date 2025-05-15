@@ -6,6 +6,7 @@ import sensorRoutes from './routes/sensors';
 import authRoutes from './routes/authRoutes';
 import dataGeneratorService from './services/dataGenerator';
 import sensorController from './controllers/sensorController';
+import settingsRoutes from './routes/settingsRoutes';
 
 // Configure environment variables
 dotenv.config();
@@ -21,6 +22,7 @@ app.use(express.json());
 app.use('/api/devices', deviceRoutes);
 app.use('/api/sensors', sensorRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Special routes for testing/development
 app.get('/api/generate-data', async (req, res) => {
