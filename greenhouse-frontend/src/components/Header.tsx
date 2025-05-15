@@ -182,42 +182,10 @@ const Header: React.FC<HeaderProps> = ({ isLoggedIn, username, onLogout }) => {
                   )}
                 </Flex>
               </Box>
-<<<<<<< HEAD
-              <Box>
-                <Link 
-                  to="/settings"
-                  style={{
-                    textDecoration: 'none',
-                    color: location.pathname === '/settings' ? '#22c35e' : '#4a5568',
-                    fontWeight: location.pathname === '/settings' ? 'bold' : 'normal'
-                  }}
-                >
-                  Settings
-                </Link>
-              </Box>
-              <Box borderLeft="1px" borderColor="gray.200" height="20px" mx={2} />
-              <HStack gap={4}>
-                <Text fontSize="sm" color="gray.600">
-                  Welcome, <Text as="span" fontWeight="bold">{username}</Text>
-                </Text>
-                
-                <Button
-                  onClick={onLogout}
-                  size="sm"
-                  colorScheme="red"
-                  variant="solid"
-                >
-                  Logout
-                </Button>
-              </HStack>
-            </>
-          ) : (
-=======
             )}
           </>
         ) : (
           <HStack alignItems="center" gap="24px">
->>>>>>> e73e0c2146ebe3398a6437605f8dcb5c6301d8a5
             <Box>
               <Link 
                 to="/"
