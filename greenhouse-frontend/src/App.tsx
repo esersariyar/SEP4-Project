@@ -8,6 +8,7 @@ import Header from './components/Header';
 import Login from './components/Login';
 import Devices from './components/Devices';
 import Settings from './components/Settings';
+import Predictions from './components/Predictions';
 
 interface User {
   id: number;
@@ -16,8 +17,6 @@ interface User {
   lastName: string | null;
   refCode: string;
 }
-
-
 
 function App() {
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
@@ -93,6 +92,11 @@ function App() {
             <Route path="/settings" element={
               <ProtectedRoute>
                 <Settings />
+              </ProtectedRoute>
+            } />
+            <Route path="/predictions" element={
+              <ProtectedRoute>
+                <Predictions />
               </ProtectedRoute>
             } />
             <Route path="*" element={<Navigate to="/" replace />} />
