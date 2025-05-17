@@ -146,6 +146,22 @@ const Header: React.FC<HeaderProps> = ({ isLoggedIn, username, onLogout }) => {
 
                       <Box py={2} px={1} borderRadius="md" _hover={{ bg: "green.50" }}>
                         <Link 
+                          to="/predictions"
+                          style={{
+                            textDecoration: 'none',
+                            color: location.pathname === '/predictions' ? '#22c35e' : '#4a5568',
+                            fontWeight: location.pathname === '/predictions' ? 'bold' : 'normal',
+                            display: 'block',
+                            width: '100%'
+                          }}
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          Predictions
+                        </Link>
+                      </Box>
+
+                      <Box py={2} px={1} borderRadius="md" _hover={{ bg: "green.50" }}>
+                        <Link 
                           to="/settings"
                           style={{
                             textDecoration: 'none',
@@ -240,6 +256,19 @@ const Header: React.FC<HeaderProps> = ({ isLoggedIn, username, onLogout }) => {
                     }}
                   >
                     Devices
+                  </Link>
+                </Box>
+
+                <Box>
+                  <Link 
+                    to="/predictions"
+                    style={{
+                      textDecoration: 'none',
+                      color: location.pathname === '/predictions' ? '#22c35e' : '#4a5568',
+                      fontWeight: location.pathname === '/predictions' ? 'bold' : 'normal'
+                    }}
+                  >
+                    Predictions
                   </Link>
                 </Box>
 

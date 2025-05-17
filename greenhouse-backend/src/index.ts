@@ -7,6 +7,7 @@ import authRoutes from './routes/authRoutes';
 import dataGeneratorService from './services/dataGenerator';
 import sensorController from './controllers/sensorController';
 import settingsRoutes from './routes/settingsRoutes';
+import predictionsRoutes from './routes/predictions';
 
 // Configure environment variables
 dotenv.config();
@@ -23,6 +24,7 @@ app.use('/api/devices', deviceRoutes);
 app.use('/api/sensors', sensorRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/predictions', predictionsRoutes);
 
 // Special routes for testing/development
 app.get('/api/generate-data', async (req, res) => {
@@ -45,7 +47,7 @@ process.on('SIGINT', () => {
 // Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  // Server is running
+  console.log(`Server running on port ${PORT}`);
 });
 
 export default app;
