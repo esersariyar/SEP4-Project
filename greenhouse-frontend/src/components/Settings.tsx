@@ -521,7 +521,7 @@ export default function Settings() {
           </Tabs.Content>
           {/* @ts-ignore */}
           <Tabs.Content value="device">
-            <><Box p={{ base: 4, md: 8 }} bg="gray.50" borderRadius="lg" textAlign="center"><Text color="gray.500" fontSize={{ base: "md", md: "lg" }}>Device settings will be available soon.</Text></Box></>
+            <><Box p={{ base: 4, md: 8 }} bg="gray.50" borderRadius="lg" textAlign="center"><Text color="gray.500" fontSize={{ base: "md", md: "lg" }}>Device settings are currently unavailable.</Text></Box></>
           </Tabs.Content>
         </Tabs.Root>
       </Box>
