@@ -135,55 +135,58 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   return (
     <Box
-      h="100vh"
+      minH="100vh"
       w="100%"
-      bg={'#f0f9f0'}
-      position="fixed"
-      top={0}
-      left={0}
-      right={0}
-      bottom={0}
-      overflow="hidden"
+      bgGradient="linear(to-br, #e8f5e9, #f0f9f0 60%, #c8e6c9)"
+      position="relative"
       display="flex"
       flexDirection="column"
       justifyContent="space-between"
+      overflowY="auto"
     >
       <Header isLoggedIn={false} username="" onLogout={() => {}} />
+      
       {/* Main content with login form */}
       <Flex
         flex="1"
         width="100%"
         alignItems="center"
         justifyContent="center"
-        py={2}
+        py={[2, 3, 4, 5]}
+        mt={0}
       >
       <Container
-        maxW={['sm', 'md', 'lg']}
+        maxW={['95vw', '90vw', '400px', '480px']}
         bg={'white'}
-        boxShadow={'xl'}
-        p={[3, 4]}
-        borderRadius={'xl'}
+        boxShadow={['md', 'lg', '2xl', '2xl']}
+        p={[3, 4, 6, 8]}
+        borderRadius={['xl', '2xl', '2xl', '3xl']}
         position="relative"
         zIndex={20}
-        mx={[4, 'auto']}
+        mx="auto"
+        my={[2, 3, 4, 5]}
       >
         {/* Greenhouse Logo */}
-        <Flex justifyContent="center" mb={4}>
-          <Box width="150px" height="150px">
+        <Flex justifyContent="center" mb={[2, 2, 3, 4]}>
+          <Box width={["56px", "72px", "110px", "140px"]} height={["56px", "72px", "110px", "140px"]}>
             <Image 
               src="https://i.ibb.co/F4NQcPfH/image.png" 
               alt="Via Greenhouse Logo"
               width="100%"
               height="100%"
               objectFit="contain"
+              draggable={false}
+              userSelect="none"
             />
           </Box>
         </Flex>
         <Heading
           textAlign={'center'}
-          mb={4}
+          mb={[2, 2, 3, 4]}
           color={'green.700'}
-          fontSize="2xl"
+          fontSize={["md", "lg", "2xl", "3xl"]}
+          fontWeight="extrabold"
+          letterSpacing="tight"
         >
           {isLogin ? 'Welcome to Via GreenHouse' : 'Join Via GreenHouse'}
         </Heading>
@@ -192,101 +195,136 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           <Box
             bg="red.50"
             color="red.700"
-            p={3}
-            mb={4}
             borderRadius="md"
+            mb={[2, 3, 4, 6]}
+            fontSize={["sm", "md", "md", "lg"]}
+            px={4}
+            py={3}
             borderLeft="4px solid"
-            borderColor="red.500"
+            borderColor="red.400"
+            fontWeight="medium"
           >
             {error}
           </Box>
         )}
 
-        <form onSubmit={handleSubmit}>
-          <VStack gap={'4'} alignItems={'stretch'}>
-            <Box mb={3}>
-              <Text mb={1} fontWeight={'medium'}>Username *</Text>
+        <form onSubmit={handleSubmit} style={{ width: '100%' }}>
+          <VStack gap={[2, 3, 4, 6]} alignItems={'stretch'} width="100%">
+            <Box mb={[1, 1, 2, 2]}>
+              <Text mb={[0.5, 1, 1, 1.5]} fontSize={["sm", "md", "md", "lg"]} fontWeight={'semibold'}>Username *</Text>
               <Input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
-                size="md"
+                size={["md", "md", "lg", "lg"]}
                 borderColor="gray.300"
                 _hover={{ borderColor: 'green.300' }}
-                _focus={{ borderColor: 'green.400', boxShadow: '0 0 0 1px #68D391' }}
+                _focus={{ borderColor: 'green.400', boxShadow: '0 0 0 2px #68D391' }}
+                width="100%"
+                borderRadius="lg"
               />
             </Box>
 
-            <Box mb={3}>
-              <Text mb={1} fontWeight={'medium'}>Password *</Text>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                size="md"
-                borderColor="gray.300"
-                _hover={{ borderColor: 'green.300' }}
-                _focus={{ borderColor: 'green.400', boxShadow: '0 0 0 1px #68D391' }}
-              />
-            </Box>
+            {isLogin && (
+              <Box mb={[1, 1, 2, 2]}>
+                <Text mb={[0.5, 1, 1, 1.5]} fontSize={["sm", "md", "md", "lg"]} fontWeight={'semibold'}>Password *</Text>
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  size={["md", "md", "lg", "lg"]}
+                  borderColor="gray.300"
+                  _hover={{ borderColor: 'green.300' }}
+                  _focus={{ borderColor: 'green.400', boxShadow: '0 0 0 2px #68D391' }}
+                  width="100%"
+                  borderRadius="lg"
+                />
+              </Box>
+            )}
 
             {!isLogin && (
               <>
-                <Box mb={3}>
-                  <Text mb={1} fontWeight={'medium'}>Confirm Password *</Text>
-                  <Input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                    size="md"
-                    borderColor="gray.300"
-                    _hover={{ borderColor: 'green.300' }}
-                    _focus={{ borderColor: 'green.400', boxShadow: '0 0 0 1px #68D391' }}
-                  />
-                </Box>
-
-                <Flex direction={['column', 'row']} gap={[0, 4]} mb={3}>
-                  <Box flex={1} mb={[3, 0]}>
-                    <Text mb={1} fontWeight={'medium'}>First Name (Optional)</Text>
+                <Flex direction={["column", "row"]} gap={[2, 2, 3, 4]} mb={[1, 1, 2, 2]}>
+                  <Box flex={1} mb={[1, 0]}>
+                    <Text mb={[0.5, 1, 1, 1.5]} fontSize={["sm", "md", "md", "lg"]} fontWeight={'semibold'}>Password *</Text>
                     <Input
-                      type="text"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      size="md"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      size={["md", "md", "lg", "lg"]}
                       borderColor="gray.300"
                       _hover={{ borderColor: 'green.300' }}
-                      _focus={{ borderColor: 'green.400', boxShadow: '0 0 0 1px #68D391' }}
+                      _focus={{ borderColor: 'green.400', boxShadow: '0 0 0 2px #68D391' }}
+                      width="100%"
+                      borderRadius="lg"
                     />
                   </Box>
 
                   <Box flex={1}>
-                    <Text mb={1} fontWeight={'medium'}>Last Name (Optional)</Text>
+                    <Text mb={[0.5, 1, 1, 1.5]} fontSize={["sm", "md", "md", "lg"]} fontWeight={'semibold'}>Confirm Password *</Text>
                     <Input
-                      type="text"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      size="md"
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                      size={["md", "md", "lg", "lg"]}
                       borderColor="gray.300"
                       _hover={{ borderColor: 'green.300' }}
-                      _focus={{ borderColor: 'green.400', boxShadow: '0 0 0 1px #68D391' }}
+                      _focus={{ borderColor: 'green.400', boxShadow: '0 0 0 2px #68D391' }}
+                      width="100%"
+                      borderRadius="lg"
                     />
                   </Box>
                 </Flex>
 
-                <Box mb={3}>
-                  <Text mb={1} fontWeight={'medium'}>Invitation Code *</Text>
+                <Flex direction={["column", "row"]} gap={[2, 2, 3, 4]} mb={[1, 1, 2, 2]}>
+                  <Box flex={1} mb={[1, 0]}>
+                    <Text mb={[0.5, 1, 1, 1.5]} fontSize={["sm", "md", "md", "lg"]} fontWeight={'semibold'}>First Name <span style={{ color: '#aaa', fontWeight: 400 }}>(Optional)</span></Text>
+                    <Input
+                      type="text"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      size={["md", "md", "lg", "lg"]}
+                      borderColor="gray.300"
+                      _hover={{ borderColor: 'green.300' }}
+                      _focus={{ borderColor: 'green.400', boxShadow: '0 0 0 2px #68D391' }}
+                      width="100%"
+                      borderRadius="lg"
+                    />
+                  </Box>
+
+                  <Box flex={1}>
+                    <Text mb={[0.5, 1, 1, 1.5]} fontSize={["sm", "md", "md", "lg"]} fontWeight={'semibold'}>Last Name <span style={{ color: '#aaa', fontWeight: 400 }}>(Optional)</span></Text>
+                    <Input
+                      type="text"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      size={["md", "md", "lg", "lg"]}
+                      borderColor="gray.300"
+                      _hover={{ borderColor: 'green.300' }}
+                      _focus={{ borderColor: 'green.400', boxShadow: '0 0 0 2px #68D391' }}
+                      width="100%"
+                      borderRadius="lg"
+                    />
+                  </Box>
+                </Flex>
+
+                <Box mb={[1, 1, 2, 2]}>
+                  <Text mb={[0.5, 1, 1, 1.5]} fontSize={["sm", "md", "md", "lg"]} fontWeight={'semibold'}>Invitation Code *</Text>
                   <Input
                     type="text"
                     value={inviteCode}
                     onChange={(e) => setInviteCode(e.target.value)}
                     required
-                    size="md"
+                    size={["md", "md", "lg", "lg"]}
                     borderColor="gray.300"
                     _hover={{ borderColor: 'green.300' }}
-                    _focus={{ borderColor: 'green.400', boxShadow: '0 0 0 1px #68D391' }}
+                    _focus={{ borderColor: 'green.400', boxShadow: '0 0 0 2px #68D391' }}
+                    width="100%"
+                    borderRadius="lg"
                   />
                 </Box>
               </>
@@ -295,13 +333,15 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <Button
               type="submit"
               colorScheme="green"
-              size="lg"
-              fontSize="md"
+              size={["md", "md", "lg", "lg"]}
+              fontSize={["md", "md", "lg", "xl"]}
               disabled={loading}
               width="100%"
-              mt={4}
-              boxShadow="sm"
-              _hover={{ transform: 'translateY(-2px)', boxShadow: 'md' }}
+              mt={[2, 2, 3, 4]}
+              mb={[1, 1, 2, 2]}
+              boxShadow="md"
+              borderRadius="xl"
+              _hover={{ transform: 'translateY(-2px)', boxShadow: 'lg', bg: 'green.400' }}
               transition="all 0.2s"
             >
               {loading ? 
@@ -311,20 +351,20 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </VStack>
         </form>
 
-        <Flex mt={3} justifyContent="center" alignItems="center">
-          <Text fontSize="sm">
-            {isLogin ? "Don't have an account?" : "Already have an account?"}
+        <Flex mt={[2, 2, 3, 4]} justifyContent="center" alignItems="center">
+          <Text fontSize={["sm", "md", "md", "lg"]}>
+            {isLogin ? 'Don\'t have an account?' : 'Already have an account?'}
           </Text>
           <Button
             variant="ghost"
             colorScheme="green"
             onClick={toggleMode}
-            size="sm"
-            ml={1}
+            size={["sm", "md", "md", "lg"]}
+            ml={2}
             fontWeight="bold"
             height="auto"
-            py={1}
-            _hover={{ bg: 'green.50' }}
+            py={[0.5, 1, 1, 1.5]}
+            _hover={{ bg: 'green.50', color: 'green.600' }}
           >
             {isLogin ? 'Sign up' : 'Sign in'}
           </Button>
@@ -332,102 +372,108 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       </Container>
       </Flex>
       
-      {/* Bottom section with grass and plants */}
+      {/* Bottom section with grass and plants - Simplified for mobile */}
       <Box
         width="100%"
         position="relative"
-        height="100px"
+        height={["40px", "50px", "70px", "90px"]}
       >
-        {/* Grass at the bottom */}
+        {/* Simplified grass at the bottom */}
         <Box
           position="fixed"
           bottom="0"
           left="0"
           width="100%"
-          height={['70px', '100px']}
+          height={["40px", "50px", "70px", "90px"]}
           zIndex={12}
           backgroundImage={`url('https://freepngimg.com/download/grass/26-grass-png-image-green-picture.png')`}
           backgroundRepeat="repeat-x"
-          backgroundSize={['auto 100px', 'auto 130px']}
+          backgroundSize={["auto 40px", "auto 60px", "auto 90px", "auto 120px"]}
           backgroundPosition="bottom center"
-          display={['block']}
+          display={["block"]}
         />
 
-        
-        {/* Tree on left - behind grass */}
-        <Box
-          position="fixed"
-          bottom="10px"
-          left="2%"
-          width={['400px', '500px', '600px']}
-          height={['343px', '428px', '513px']}
-          zIndex={9}
-          display={['none', 'none', 'block']}
-        >
-          <Image
-            src="https://i.ibb.co/kg31X8Kq/image.png"
-            alt="Tree"
-            objectFit="contain"
-            width="100%"
-            height="100%"
-          />
-        </Box>
-        
-        {/* Orange flower on right - above grass */}
-        <Box
-          position="fixed"
-          bottom="20px"
-          right={['5%', '10%']}
-          width={['80px', '100px', '120px']}
-          height={['80px', '100px', '120px']}
-          zIndex={13}
-          display={['none', 'block']}
-        >
-          <Image
-            src="https://static.vecteezy.com/system/resources/previews/022/541/396/non_2x/floral-illustration-design-in-orange-color-free-png.png"
-            alt="Orange Flower"
-            objectFit="contain"
-            width="100%"
-            height="100%"
-          />
-        </Box>
-        
-        {/* Flower pot in middle */}
-        <Box
-          position="fixed"
-          bottom="0px"
-          left={['30%', '35%', '40%']}
-          width={['80px', '100px', '120px']}
-          height={['80px', '100px', '120px']}
-          zIndex={13}
-          display={['none', 'block']}
-        >
-          <Image
-            src="https://static.vecteezy.com/system/resources/previews/009/384/082/non_2x/flower-in-pot-clipart-design-illustration-free-png.png"
-            alt="Flower in Pot"
-            objectFit="contain"
-            width="100%"
-            height="100%"
-          />
-        </Box>
-        
-        {/* Flower image */}
-        <Box
-          position="fixed"
-          bottom="30px"
-          left="75%"
-          width={['80px', '100px', '120px']}
-          height={['80px', '100px', '120px']}
-          zIndex={13}
-          display={['none', 'block']}
-        >
-          <Image
-            src="https://pngcore.com/files/preview/800x800/11696259736vlogkdkpb1qxokuso8bkvzwexrpzuonmqcfcz49u9rvp4p0ktmjmkklh2gsboyrhfg2li5rzzosux3j8za4uyahrh0mwg6cok2fk.png"
-            alt="Flower"
-            objectFit="contain"
-            width="100%"
-            height="100%"
-          />
+        {/* Only show decorative elements on larger screens */}
+        <Box display={["none", "none", "block", "block"]}>
+          {/* Tree on left - behind grass */}
+          <Box
+            position="fixed"
+            bottom="10px"
+            left="2%"
+            width={['220px', '320px', '500px', '500px']}
+            height={['180px', '250px', '400px', '400px']}
+            zIndex={9}
+          >
+            <Image
+              src="https://i.ibb.co/kg31X8Kq/image.png"
+              alt="Tree"
+              objectFit="contain"
+              width="100%"
+              height="100%"
+              draggable={false}
+              userSelect="none"
+            />
+          </Box>
+          
+          {/* Orange flower on right - above grass */}
+          <Box
+            position="fixed"
+            bottom="20px"
+            right={'10%'}
+            width={['60px', '80px', '100px', '100px']}
+            height={['60px', '80px', '100px', '100px']}
+            zIndex={13}
+          >
+            <Image
+              src="https://static.vecteezy.com/system/resources/previews/022/541/396/non_2x/floral-illustration-design-in-orange-color-free-png.png"
+              alt="Orange Flower"
+              objectFit="contain"
+              width="100%"
+              height="100%"
+              draggable={false}
+              userSelect="none"
+            />
+          </Box>
+          
+          {/* Flower pot in middle */}
+          <Box
+            position="fixed"
+            bottom="0px"
+            left={'40%'}
+            width={['60px', '80px', '100px', '100px']}
+            height={['60px', '80px', '100px', '100px']}
+            zIndex={13}
+          >
+            <Image
+              src="https://static.vecteezy.com/system/resources/previews/009/384/082/non_2x/flower-in-pot-clipart-design-illustration-free-png.png"
+              alt="Flower in Pot"
+              objectFit="contain"
+              width="100%"
+              height="100%"
+              draggable={false}
+              userSelect="none"
+            />
+          </Box>
+          
+          {/* Flower image */}
+          <Box
+            position="fixed"
+            bottom="30px"
+            left="75%"
+            width={['60px', '80px', '100px', '100px']}
+            height={['60px', '80px', '100px', '100px']}
+            zIndex={13}
+          >
+            <Image
+              src="https://pngcore.com/files/preview/800x800/11696259736vlogkdkpb1qxokuso8bkvzwexrpzuonmqcfcz49u9rvp4p0ktmjmkklh2gsboyrhfg2li5rzzosux3j8za4uyahrh0mwg6cok2fk.png"
+              alt="Flower"
+              objectFit="contain"
+              width="100%"
+              height="100%"
+              draggable={false}
+              userSelect="none"
+            />
+          </Box>
         </Box>
       </Box>
     </Box>
