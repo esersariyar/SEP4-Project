@@ -168,7 +168,9 @@ const Dashboard: React.FC = () => {
   }, []);
 
   const handleRangeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedRange(e.target.value as TimeRange);
+    const newRange = e.target.value as TimeRange;
+    setSelectedRange(newRange);
+    // Historical data will automatically update through the useEffect
   };
 
   const formatTimeAgo = (seconds: number): string => {
@@ -293,12 +295,43 @@ const Dashboard: React.FC = () => {
     }
   }, [API_URL]);
 
+  // Fetches historical data based on the selected time range
+  const fetchHistoricalData = useCallback(async () => {
+    setError(null);
+    try {
+      if (dataSource === 'demo') {
+        // For demo mode, use generated data
+        const newHistoricalData = generateDemoHistoricalData(selectedRange);
+        setHistoricalData(newHistoricalData);
+      } else {
+        // For live mode, fetch from API with the selected range parameter
+        const historicalResponse = await fetch(`${API_URL}/api/sensors/history?range=${selectedRange}`);
+        
+        if (!historicalResponse.ok) {
+          // If API fails, fallback to demo data
+          console.warn('Failed to fetch historical data, falling back to demo data');
+          const newHistoricalData = generateDemoHistoricalData(selectedRange);
+          setHistoricalData(newHistoricalData);
+        } else {
+          const historyData = await historicalResponse.json();
+          setHistoricalData(Array.isArray(historyData) ? historyData : historyData.data || []);
+        }
+      }
+    } catch (err: any) {
+      console.error('Error fetching historical data:', err);
+      // Fallback to demo data in case of error
+      const newHistoricalData = generateDemoHistoricalData(selectedRange);
+      setHistoricalData(newHistoricalData);
+    }
+  }, [API_URL, selectedRange, dataSource]);
+
   useEffect(() => {
     // Generate some initial demo data if there's nothing to show
     if (!data && !historicalData.length) {
       handleGenerateDemoData();
     } else {
       fetchData();
+      fetchHistoricalData();
     }
     
     const intervalId = setInterval(() => {
@@ -306,7 +339,12 @@ const Dashboard: React.FC = () => {
     }, refreshInterval);
     
     return () => clearInterval(intervalId);
-  }, [fetchData, refreshInterval]);
+  }, [fetchData, fetchHistoricalData, refreshInterval]);
+
+  // Update historical data when time range changes
+  useEffect(() => {
+    fetchHistoricalData();
+  }, [selectedRange, fetchHistoricalData]);
 
   const ensureNumber = (value: string | number): number => {
     if (typeof value === 'string') {
@@ -680,7 +718,10 @@ const Dashboard: React.FC = () => {
               </select>
               
               <Button 
-                onClick={fetchData} 
+                onClick={() => {
+                  fetchData();
+                  fetchHistoricalData();
+                }} 
                 size="sm" 
                 colorScheme="blue" 
               >
@@ -722,13 +763,26 @@ const Dashboard: React.FC = () => {
                 height={300}
                 formatXAxis={(value: string) => {
                   try {
+                    // Use Intl.DateTimeFormat with explicit Copenhagen timezone (Europe/Copenhagen)
                     const date = new Date(value);
+                    
                     if (selectedRange === '1h' || selectedRange === '6h' || selectedRange === '12h' || selectedRange === '24h') {
-                      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                      // For hour-based ranges, show time only
+                      return new Intl.DateTimeFormat('en-GB', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        timeZone: 'Europe/Copenhagen'
+                      }).format(date);
                     } else {
-                      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                      // For day-based ranges, show date only
+                      return new Intl.DateTimeFormat('en-GB', {
+                        day: 'numeric',
+                        month: 'short',
+                        timeZone: 'Europe/Copenhagen'
+                      }).format(date);
                     }
                   } catch (e) {
+                    console.error('Error formatting date:', e);
                     return '';
                   }
                 }}
@@ -753,13 +807,26 @@ const Dashboard: React.FC = () => {
                 height={300}
                 formatXAxis={(value: string) => {
                   try {
+                    // Use Intl.DateTimeFormat with explicit Copenhagen timezone (Europe/Copenhagen)
                     const date = new Date(value);
+                    
                     if (selectedRange === '1h' || selectedRange === '6h' || selectedRange === '12h' || selectedRange === '24h') {
-                      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                      // For hour-based ranges, show time only
+                      return new Intl.DateTimeFormat('en-GB', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        timeZone: 'Europe/Copenhagen'
+                      }).format(date);
                     } else {
-                      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                      // For day-based ranges, show date only
+                      return new Intl.DateTimeFormat('en-GB', {
+                        day: 'numeric',
+                        month: 'short',
+                        timeZone: 'Europe/Copenhagen'
+                      }).format(date);
                     }
                   } catch (e) {
+                    console.error('Error formatting date:', e);
                     return '';
                   }
                 }}

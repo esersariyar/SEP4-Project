@@ -28,6 +28,33 @@ export const deviceController = {
   },
   
   /**
+   * Get single device by ID
+   * @route GET /api/devices/:id
+   * @access Public
+   */
+  getDeviceById: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const deviceId = parseInt(req.params.id);
+      
+      if (isNaN(deviceId)) {
+        res.status(400).json({ message: 'Invalid device ID' });
+        return;
+      }
+      
+      const device = await DeviceModel.getDeviceById(deviceId);
+      
+      if (!device) {
+        res.status(404).json({ message: 'Device not found' });
+        return;
+      }
+      
+      res.status(200).json(device);
+    } catch (error) {
+      res.status(500).json({ message: 'Server error when fetching device' });
+    }
+  },
+  
+  /**
    * Toggle device status (for actuators)
    * @route PUT /api/devices/:id/toggle
    * @access Public

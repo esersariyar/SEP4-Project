@@ -12,27 +12,32 @@ const router = express.Router();
 router.get('/', deviceController.getAllDevices);
 
 /**
- * @route   GET /api/devices/test
- * @desc    Test route to verify the router is working
+ * @route   GET /api/devices/:id
+ * @desc    Get single device
  * @access  Public
  */
-router.get('/test', (req, res) => {
-  res.json({ message: 'Device routes are working!' });
-});
+router.get('/:id', deviceController.getDeviceById);
 
 /**
  * @route   GET /api/devices/logs
- * @desc    Get all device logs with optional filtering
+ * @desc    Get all device logs
  * @access  Public
  */
 router.get('/logs', deviceController.getAllDeviceLogs);
 
 /**
  * @route   GET /api/devices/:id/logs
- * @desc    Get device logs with optional filtering
+ * @desc    Get device logs for specific device
  * @access  Public
  */
 router.get('/:id/logs', deviceController.getDeviceLogs);
+
+/**
+ * @route   PUT /api/public/devices/:id/toggle
+ * @desc    Toggle device status (for actuators) - Public endpoint for development
+ * @access  Public
+ */
+router.put('/public/:id/toggle', deviceController.toggleDevice);
 
 /**
  * @route   PUT /api/devices/:id/toggle
@@ -43,7 +48,7 @@ router.put('/:id/toggle', authenticateJWT, deviceController.toggleDevice);
 
 /**
  * @route   PUT /api/devices/:id/value
- * @desc    Update sensor value (for sensors like CO2, light/lux etc.)
+ * @desc    Update device sensor value
  * @access  Private
  */
 router.put('/:id/value', authenticateJWT, deviceController.updateSensorValue);
