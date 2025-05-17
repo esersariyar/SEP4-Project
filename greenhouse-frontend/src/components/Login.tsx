@@ -144,6 +144,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       justifyContent="space-between"
       overflowY="auto"
     >
+      <Header isLoggedIn={false} username="" onLogout={() => {}} />
       
       {/* Main content with login form */}
       <Flex
@@ -163,11 +164,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         position="relative"
         zIndex={20}
         mx="auto"
-        my={[2, 4, 6, 8]}
+        my={[2, 3, 4, 5]}
       >
         {/* Greenhouse Logo */}
-        <Flex justifyContent="center" mb={[2, 3, 4, 6]}>
-          <Box width={["56px", "72px", "110px", "160px"]} height={["56px", "72px", "110px", "160px"]}>
+        <Flex justifyContent="center" mb={[2, 2, 3, 4]}>
+          <Box width={["56px", "72px", "110px", "140px"]} height={["56px", "72px", "110px", "140px"]}>
             <Image 
               src="https://i.ibb.co/F4NQcPfH/image.png" 
               alt="Via Greenhouse Logo"
@@ -181,7 +182,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         </Flex>
         <Heading
           textAlign={'center'}
-          mb={[2, 3, 4, 6]}
+          mb={[2, 2, 3, 4]}
           color={'green.700'}
           fontSize={["md", "lg", "2xl", "3xl"]}
           fontWeight="extrabold"
