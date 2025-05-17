@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import {
   Box,
   Heading,
@@ -102,7 +102,7 @@ interface BaseDevice {
   type: string;
   status: string;
   icon: string;
-  lastUpdated: string;
+  last_update: string;
   isInteractive: boolean;
 }
 
@@ -121,6 +121,28 @@ type Device = SensorDevice | ActuatorDevice;
 
 // Since it's defined as '/api/devices' in the backend, we only specify the server address here
 const API_BASE_URL = "http://localhost:3000";
+
+// Format time ago helper (this is a regular function, not using hooks)
+const formatTimeAgo = (timeDiff: number) => {
+  const seconds = Math.floor(timeDiff / 1000);
+  
+  if (seconds < 60) {
+    return `${seconds} second${seconds !== 1 ? 's' : ''} ago`;
+  }
+  
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+  }
+  
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+  }
+  
+  const days = Math.floor(hours / 24);
+  return `${days} day${days !== 1 ? 's' : ''} ago`;
+};
 
 // Status indicator component
 const StatusDot = ({ isActive }: { isActive: boolean }) => {
@@ -146,6 +168,9 @@ const Devices: React.FC<{}> = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [isUpdating, setIsUpdating] = useState<number | null>(null);
+  
+  // Add a ref to store device update timestamps - properly inside component
+  const deviceUpdateTimestamps = useRef<Record<number, number>>({});
 
   // Initialize with some example logs
   const [activityLog, setActivityLog] = useState<
@@ -181,7 +206,39 @@ const Devices: React.FC<{}> = () => {
       }
       
       const data = await response.json();
-      setDevices(data);
+      
+      // UPDATED: Compare with previous devices and only update timestamps for changed devices
+      setDevices(prevDevices => {
+        // Update timestamps for new devices
+        data.forEach((device: Device) => {
+          if (!deviceUpdateTimestamps.current[device.id]) {
+            deviceUpdateTimestamps.current[device.id] = Date.now();
+          } else {
+            // Check if any device data has changed to update timestamp
+            const prevDevice = prevDevices.find(d => d.id === device.id);
+            if (prevDevice) {
+              // If it's an actuator, check if isOn status changed
+              if (device.isInteractive && prevDevice.isInteractive) {
+                const prevActuator = prevDevice as ActuatorDevice;
+                const newActuator = device as ActuatorDevice;
+                if (prevActuator.isOn !== newActuator.isOn) {
+                  deviceUpdateTimestamps.current[device.id] = Date.now();
+                }
+              } 
+              // For sensors, check if value changed
+              else if (!device.isInteractive && !prevDevice.isInteractive) {
+                const prevSensor = prevDevice as SensorDevice;
+                const newSensor = device as SensorDevice;
+                if (prevSensor.value !== newSensor.value) {
+                  deviceUpdateTimestamps.current[device.id] = Date.now();
+                }
+              }
+            }
+          }
+        });
+        return data;
+      });
+      
       setError("");
     } catch (err) {
       console.error("Error fetching devices:", err);
@@ -245,6 +302,9 @@ const Devices: React.FC<{}> = () => {
           },
           ...prev.slice(0, 9), // Keep only the 10 most recent logs
         ]);
+
+        // UPDATED: Update timestamp for this device immediately when toggled
+        deviceUpdateTimestamps.current[id] = Date.now();
 
         // Optimistic UI update
         setDevices(
@@ -337,8 +397,18 @@ const Devices: React.FC<{}> = () => {
       setDevices,
       setError,
       setIsUpdating,
+      deviceUpdateTimestamps,
     ],
   );
+
+  // Update last update time for device - this is inside the component
+  const getLastUpdateTime = (deviceId: number) => {
+    if (!deviceUpdateTimestamps.current[deviceId]) {
+      deviceUpdateTimestamps.current[deviceId] = Date.now();
+    }
+    
+    return formatTimeAgo(Date.now() - deviceUpdateTimestamps.current[deviceId]);
+  };
 
   return (
     <Box p={5} bg={bgGradient} minH="calc(100vh - 64px)">
@@ -582,7 +652,7 @@ const Devices: React.FC<{}> = () => {
 
                           <Flex justify="space-between" align="center" mt="auto">
                             <Text fontSize="xs" color="gray.500">
-                              Last updated: {device.lastUpdated}
+                              Last updated: {getLastUpdateTime(device.id)}
                             </Text>
                           </Flex>
                         </Flex>
