@@ -15,7 +15,6 @@
     "@types/node": "^16.18.126",
     "@types/react": "19.1.4",
     "@types/react-dom": "19.1.4",
-    "date-fns-tz": "^3.2.0",
     "framer-motion": "^12.10.5",
     "postcss-flexbugs-fixes": "^5.0.2",
     "postcss-normalize": "^13.0.1",

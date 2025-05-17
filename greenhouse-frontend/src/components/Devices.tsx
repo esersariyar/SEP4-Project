@@ -181,23 +181,7 @@ const Devices: React.FC<{}> = () => {
       }
       
       const data = await response.json();
-      
-      // Format the lastUpdated field - backend sends last_update but frontend needs lastUpdated
-      const formattedData = data.map((device: any) => {
-        // Format the lastUpdated field from last_update (which may be undefined)
-        let lastUpdated = "Unknown";
-        if (device.last_update) {
-          const date = new Date(device.last_update);
-          lastUpdated = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        }
-        
-        return {
-          ...device,
-          lastUpdated
-        };
-      });
-      
-      setDevices(formattedData);
+      setDevices(data);
       setError("");
     } catch (err) {
       console.error("Error fetching devices:", err);
@@ -280,18 +264,28 @@ const Devices: React.FC<{}> = () => {
         // Get token from localStorage
         const token = localStorage.getItem('token');
         console.log('Using token for device toggle:', token ? token.substring(0, 15) + '...' : 'No token found');
-        
-        // Eğer token yoksa (oturum açılmamışsa) cihaz durumunu güncelleyen özel bir fonksiyon kullanabiliriz
-        // Bu, gerçek bir sistemde yapılmamalıdır, sadece geçici bir çözümdür
-        // Bu mock API isteği, kimlik doğrulama işlemini atlayarak backend'e bir istek gönderir
+
+        // Get user data from localStorage
+        try {
+          const userDataStr = localStorage.getItem('user');
+          if (userDataStr) {
+            const userData = JSON.parse(userDataStr);
+            console.log('User data from localStorage:', userData);
+          } else {
+            console.log('No user data in localStorage');
+          }
+        } catch (err) {
+          console.error('Error parsing user data:', err);
+        }
+
+        // Clean API request like in Dashboard
         const response = await fetch(
-          `${API_BASE_URL}/api/devices/public/${id}/toggle`, // /api/devices/public/ şeklinde endpoint yolu
+          `${API_BASE_URL}/api/devices/${id}/toggle`,
           {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
-              // Token ekleyin ancak gerekli değilse veya hata veriyorsa kaldırın
-              //"Authorization": token ? `Bearer ${token}` : '',
+              "Authorization": token ? `Bearer ${token}` : '',
             },
             body: JSON.stringify({ 
               status: isOn ? 'on' : 'off' 
@@ -299,42 +293,6 @@ const Devices: React.FC<{}> = () => {
           },
         );
 
-        // Eğer public endpoint yoksa veya 404 döndürüyorsa, token olmadan normal endpoint'i dene
-        if (response.status === 404) {
-          const regularResponse = await fetch(
-            `${API_BASE_URL}/api/devices/${id}/toggle`,
-            {
-              method: "PUT",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ 
-                status: isOn ? 'on' : 'off' 
-              }),
-            },
-          );
-          
-          // Normal endpoint çalışmadı, hata fırlat
-          if (!regularResponse.ok) {
-            throw new Error(`Failed to toggle device: ${regularResponse.status}`);
-          }
-          
-          // Başarılı yanıt al
-          const result = await regularResponse.json();
-          console.log('Toggle device response:', result);
-          
-          // UI'ı güncelle
-          if (result.device) {
-            setDevices((prevDevices) =>
-              prevDevices.map((d) =>
-                d.id === id ? { ...d, ...result.device } : d,
-              ),
-            );
-          }
-          return; // İşlemi bitir
-        }
-
-        // Public endpointe istek başarısız olduysa hata fırlat
         if (!response.ok) {
           throw new Error(`Failed to toggle device: ${response.status}`);
         }
