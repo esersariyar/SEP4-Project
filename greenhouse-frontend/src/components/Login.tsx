@@ -144,7 +144,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       justifyContent="space-between"
       overflowY="auto"
     >
-      <Header isLoggedIn={false} username="" onLogout={() => {}} />
       
       {/* Main content with login form */}
       <Flex
