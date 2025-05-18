@@ -14,7 +14,16 @@ import {
   Icon,
 } from '@chakra-ui/react';
 import { LineChart } from './ui/chart';
-import Header from './Header';
+// Import utility functions
+import { 
+  ensureNumber, 
+  formatTimeAgo, 
+  formatDateTime,
+  generateDemoDataPoint,
+  generateDemoHistoricalData
+} from '../utils';
+// Import the sensor data type from utils
+import type { SensorData as UtilSensorData } from '../utils/demoData';
 
 // Custom icons implemented using SVG instead of relying on external packages
 const CustomIcon = (props: any) => {
@@ -171,89 +180,23 @@ const Dashboard: React.FC = () => {
     setSelectedRange(e.target.value as TimeRange);
   };
 
-  const formatTimeAgo = (seconds: number): string => {
-    if (seconds >= 60) {
-      return "< 1 minute ago";
-    } else {
-      return `${seconds} seconds ago`;
-    }
-  };
-
-  const generateDemoData = () => {
-    const now = new Date();
-    const id = Math.floor(Math.random() * 1000);
-    
-    const temperature = (20 + Math.random() * 10).toFixed(1);
-    const humidity = (50 + Math.random() * 30).toFixed(1);
-    
-    let prediction: 'Normal' | 'Alert' | 'Warning' = 'Normal';
-    if (parseFloat(temperature) > 28) prediction = 'Alert';
-    else if (parseFloat(temperature) > 25) prediction = 'Warning';
-    
-    return {
-      id,
-      temperature,
-      humidity,
-      prediction,
-      timestamp: now.toISOString(),
-      _source: 'demo'
-    };
-  };
-
-  const generateDemoHistoricalData = (range: TimeRange = '24h'): SensorData[] => {
-    const now = new Date();
-    const data: SensorData[] = [];
-    
-    let hours = 24;
-    if (range === '1h') hours = 1;
-    else if (range === '6h') hours = 6;
-    else if (range === '12h') hours = 12;
-    else if (range === '7d') hours = 168;  
-    else if (range === '30d') hours = 720; 
-    
-    const interval = (hours * 60 * 60) / 100;  
-    
-    for (let i = 0; i < 100; i++) {
-      const timestamp = new Date(now.getTime() - ((99 - i) * interval * 1000));
-      
-      const hourOfDay = timestamp.getHours();
-      const baseTemperature = 18 + (hourOfDay > 6 && hourOfDay < 18 ? 7 : 2); 
-      const temperature = (baseTemperature + Math.random() * 5).toFixed(1);
-      
-      const baseHumidity = 55 + (hourOfDay > 6 && hourOfDay < 18 ? -5 : 10); 
-      const humidity = (baseHumidity + Math.random() * 10).toFixed(1);
-      
-      let prediction: 'Normal' | 'Alert' | 'Warning' = 'Normal';
-      if (parseFloat(temperature) > 28) prediction = 'Alert';
-      else if (parseFloat(temperature) > 25) prediction = 'Warning';
-      
-      data.push({
-        id: i,
-        temperature,
-        humidity,
-        prediction,
-        timestamp: timestamp.toISOString(),
-        _source: 'demo'
-      });
-    }
-    
-    return data;
-  };
-
   const handleGenerateDemoData = () => {
     setIsGenerating(true);
     
-    const newData = generateDemoData();
+    // Cast to local SensorData type to fix type issues
+    const newData = generateDemoDataPoint() as unknown as SensorData;
     setData(newData);
     lastUpdated.current = new Date();
     setDataSource('demo');
     
-    const newHistoricalData = generateDemoHistoricalData(selectedRange);
+    // Generate historical data for the selected range
+    const newHistoricalData = generateDemoHistoricalData(selectedRange) as unknown as SensorData[];
     setHistoricalData(newHistoricalData);
     
+    // Show success message
     setTimeout(() => {
       setIsGenerating(false);
-    }, 800);
+    }, 500);
   };
 
   const fetchData = useCallback(async () => {
@@ -306,13 +249,6 @@ const Dashboard: React.FC = () => {
     
     return () => clearInterval(intervalId);
   }, [fetchData, refreshInterval]);
-
-  const ensureNumber = (value: string | number): number => {
-    if (typeof value === 'string') {
-      return parseFloat(value);
-    }
-    return value;
-  };
 
   const getDateRangeText = () => {
     if (!historicalData || historicalData.length === 0) return '';

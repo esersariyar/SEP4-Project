@@ -70,3 +70,33 @@ This frontend application communicates with the Greenhouse Monitoring Backend th
 ## License
 
 This project is licensed under the MIT License.
+
+## Project Structure
+
+The project is structured as follows:
+- `src/`: Main source code folder
+  - `components/`: React components
+  - `utils/`: Utility functions and helpers
+    - `formatters.ts`: Date/time and number formatting functions
+    - `chartHelpers.ts`: Helper functions for chart components
+    - `demoData.ts`: Data generation functions for demo mode
+    - `index.ts`: Exports all utility functions
+  - `assets/`: Images and other static resources
+  - `types/`: TypeScript type definitions
+
+## Utility Functions
+
+The project uses a centralized utility functions system in the `src/utils` folder:
+
+- To use utility functions, import them from the utils module:
+  ```typescript
+  import { formatTimeAgo, ensureNumber } from '../utils';
+  ```
+
+- If you need to add new utility functions:
+  1. Choose the appropriate file (`formatters.ts`, `chartHelpers.ts`, etc.) or create a new one
+  2. Add your function with proper documentation comments
+  3. Export the function from the file
+  4. The function will be automatically available through the utils index
+
+## Development

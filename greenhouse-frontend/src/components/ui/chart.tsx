@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
   Legend
 } from 'recharts';
+import { filterValidChartData, formatChartTick } from '../../utils';
 
 interface LineChartProps {
   data: any[];
@@ -27,15 +28,7 @@ export const LineChart: React.FC<LineChartProps> = ({
 }) => {
 
   const validData = useMemo(() => {
-    return data.filter(item => {
-      try {
-        if (!item[xAxisKey]) return false;
-        const date = new Date(item[xAxisKey]);
-        return !isNaN(date.getTime());
-      } catch (e) {
-        return false;
-      }
-    });
+    return filterValidChartData(data, xAxisKey);
   }, [data, xAxisKey]);
 
 
@@ -47,12 +40,7 @@ export const LineChart: React.FC<LineChartProps> = ({
         return formatXAxis(value);
       }
       
-
-      const date = new Date(value);
-      if (isNaN(date.getTime())) {
-        return 'Invalid date';
-      }
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return formatChartTick(value);
     } catch (e) {
       return '';
     }
