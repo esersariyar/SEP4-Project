@@ -21,8 +21,6 @@ class DataGeneratorService {
    * Generate a random sensor reading with realistic changes from previous values
    */
   private generateSensorReading(): SensorData {
-    console.log('Generating new sensor reading...');
-    
     // Generate a small change from the last temperature (-1 to +1 degrees)
     const tempChange = (Math.random() * 2 - 1) * 0.5;
     // Generate a small change from the last humidity (-2 to +2 percent)
@@ -58,8 +56,6 @@ class DataGeneratorService {
     // Create ISO timestamp string based on Denmark time
     const timestamp = formatInTimeZone(now, timeZone, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
     
-    console.log(`Generated timestamp (${timeZone}):`, timestamp);
-    
     const sensorData = {
       temperature: Number(newTemp.toFixed(1)),
       humidity: Number(newHumidity.toFixed(1)),
@@ -67,7 +63,6 @@ class DataGeneratorService {
       timestamp
     };
     
-    console.log('Generated sensor data:', sensorData);
     return sensorData;
   }
   

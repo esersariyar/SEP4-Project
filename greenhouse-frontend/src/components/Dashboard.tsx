@@ -266,7 +266,6 @@ const Dashboard: React.FC = () => {
       }
       
       const sensorData: SensorData = await currentResponse.json();
-      console.log(' Current sensor data:', sensorData);
       
       if (previousData.current) {
         const prevTemp = previousData.current.temperature;

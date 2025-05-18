@@ -114,8 +114,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         navigate('/dashboard');
       }
     } catch (err) {
-      console.error('Authentication error:', err);
-
       if (err instanceof TypeError && err.message === 'Failed to fetch') {
         setError(`Could not connect to server. API URL: ${API_URL} - Please make sure the backend is running.`);
       } else if (err instanceof Error) {
@@ -123,7 +121,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       } else {
         setError('An unexpected error occurred');
       }
-    } finally {
+
       setLoading(false);
     }
   };

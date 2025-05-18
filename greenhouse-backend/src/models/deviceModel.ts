@@ -50,7 +50,7 @@ export class DeviceModel {
             INDEX idx_log_time (log_time)
           )
         `);
-        console.log('Device logs table initialized successfully');
+
       } catch (error) {
         console.error('Error initializing device_logs table:', error);
       } finally {

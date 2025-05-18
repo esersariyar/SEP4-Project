@@ -14,7 +14,6 @@ class PredictionModel {
   // Ensure the prediction_datas table exists
   async ensureTableExists(): Promise<void> {
     try {
-      console.log('Checking if prediction_datas table exists...');
       
       // Create the table if it doesn't exist
       await pool.query(`
@@ -30,7 +29,6 @@ class PredictionModel {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
       `);
       
-      console.log('Table prediction_datas exists or was created');
     } catch (error) {
       console.error('Error ensuring prediction_datas table exists:', error);
       throw error;
@@ -41,7 +39,6 @@ class PredictionModel {
    * Get prediction data for a specified time range
    */
   async getPredictions(hours = 24, limit = 500): Promise<PredictionData[]> {
-    console.log(`Fetching prediction data for next ${hours} hours, limit: ${limit}`);
 
     try {
       // Ensure table exists first
@@ -61,7 +58,6 @@ class PredictionModel {
         [nowFormatted, limit]
       );
       
-      console.log(`Retrieved ${(rows as any[]).length} prediction records`);
       return rows as PredictionData[];
     } catch (error) {
       console.error('Database error fetching predictions:', error);
@@ -73,7 +69,6 @@ class PredictionModel {
    * Generate and save prediction data
    */
   async generatePredictions(): Promise<number> {
-    console.log('Generating new prediction data...');
     
     try {
       // Ensure table exists first
@@ -91,7 +86,6 @@ class PredictionModel {
       );
       
       if (!(latestSensorData as any[]).length) {
-        console.log('No sensor data found to base predictions on, using default values');
         // Use default values if no sensor data is available
         return this.generatePredictionsWithDefaults();
       }
@@ -101,13 +95,11 @@ class PredictionModel {
       const baseAirHumidity = parseFloat(sensorData.humidity) || 55.0;
       const baseSoilHumidity = 50.0; // Starting base for soil humidity (if not in actual data)
       
-      console.log(`Base values: Temp=${baseTemp}, AirHum=${baseAirHumidity}, SoilHum=${baseSoilHumidity}`);
       
       // Get current time and normalize to remove seconds and milliseconds
       // This ensures cleaner time intervals and better chart display
       const now = new Date();
       now.setSeconds(0, 0); // Reset seconds and milliseconds to zero
-      console.log(`Starting predictions exactly from: ${now.toISOString()}`);
       
       const batch: PredictionData[] = [];
       
@@ -272,7 +264,6 @@ class PredictionModel {
    * Generate predictions with default values when no sensor data is available
    */
   private async generatePredictionsWithDefaults(): Promise<number> {
-    console.log('Generating predictions with default values');
     
     // Default starting values for a typical greenhouse environment
     const baseTemp = 23.5;
@@ -345,8 +336,6 @@ class PredictionModel {
     if (!predictions.length) return 0;
     
     try {
-      // Log a sample of what we're trying to save
-      console.log('Sample prediction data to save:', predictions[0]);
       
       // First ensure the table exists
       await this.ensureTableExists();
@@ -359,7 +348,6 @@ class PredictionModel {
         p.timestamp // Already formatted for MySQL
       ]);
       
-      console.log(`Inserting ${values.length} prediction records...`);
       
       // Execute the batch insert
       const [result] = await pool.query(
@@ -369,7 +357,6 @@ class PredictionModel {
         [values]
       );
       
-      console.log('Database response:', result);
       return (result as any).affectedRows;
     } catch (error) {
       console.error('Error saving prediction batch:', error);
@@ -382,7 +369,6 @@ class PredictionModel {
    */
   async saveSinglePrediction(data: PredictionData): Promise<number> {
     try {
-      console.log('Saving single prediction for testing:', data);
       
       // Ensure table exists
       await this.ensureTableExists();
@@ -399,7 +385,6 @@ class PredictionModel {
         ]
       );
       
-      console.log('Single insert result:', result);
       return (result as any).insertId;
     } catch (error) {
       console.error('Error saving single prediction:', error);
@@ -421,10 +406,8 @@ class PredictionModel {
         [nowFormatted]
       );
       
-      console.log('Cleared future prediction data, result:', result);
     } catch (error) {
       console.error('Error clearing future predictions:', error);
-      // Don't throw here, just log the error
     }
   }
 
@@ -434,10 +417,7 @@ class PredictionModel {
   async clearAllPredictions(): Promise<void> {
     try {
       const [result] = await pool.query('TRUNCATE TABLE prediction_datas');
-      console.log('Cleared all prediction data, result:', result);
     } catch (error) {
-      console.error('Error clearing all predictions:', error);
-      // Don't throw here, just log the error
     }
   }
 }

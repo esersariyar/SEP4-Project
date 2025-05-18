@@ -67,7 +67,6 @@ export const PredictionChart: React.FC<PredictionChartProps> = ({
         return `${date.toLocaleDateString([], { month: 'short', day: 'numeric' })} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
       }
     } catch (e) {
-      console.error('Error formatting tick:', e);
       return '';
     }
   };

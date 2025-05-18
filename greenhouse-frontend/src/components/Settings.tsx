@@ -154,18 +154,11 @@ export default function Settings() {
       try {
         const token = localStorage.getItem('token');
         
-        // Debug token ve güvenlik için ilk birkaç karakteri göster
-        console.log('Token exists:', !!token);
-        console.log('Token first 10 chars:', token ? token.substring(0, 10) + '...' : 'No token');
-        
         if (!token) {
           setError('Not authenticated');
           setLoading(false);
           return;
         }
-        
-        console.log('API URL:', API_URL);
-        console.log('Token:', token ? 'Token exists' : 'No token');
         
         const response = await fetch(`${API_URL}/api/settings`, {
           method: 'GET',
@@ -177,7 +170,6 @@ export default function Settings() {
         
         if (!response.ok) {
           const errorMessage = `HTTP error ${response.status}: ${response.statusText}`;
-          console.error(errorMessage);
           throw new Error(errorMessage);
         }
         
@@ -191,7 +183,6 @@ export default function Settings() {
           throw new Error(data.message || 'Failed to fetch profile data');
         }
       } catch (err) {
-        console.error('Error fetching profile:', err);
         setError(err instanceof Error ? err.message : 'An unknown error occurred');
       } finally {
         setLoading(false);
@@ -249,7 +240,7 @@ export default function Settings() {
             userData.lastName = lastName;
             localStorage.setItem('user', JSON.stringify(userData));
           } catch (e) {
-            console.error('Failed to update stored user data:', e);
+            // Non-blocking error
           }
         }
       } else {
