@@ -48,7 +48,7 @@ const Header: React.FC<HeaderProps> = ({ isLoggedIn, username, onLogout }) => {
         <Flex alignItems="center">
           <Box width="40px" height="40px" mr={2}>
             <Image 
-              src="https://i.ibb.co/v67KWPDs/1image.png" 
+              src={require('../assets/images/logoicon.png')} 
               alt="Via GreenHouse Logo"
               width="100%"
               height="100%"
