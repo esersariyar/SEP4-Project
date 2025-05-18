@@ -169,7 +169,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         <Flex justifyContent="center" mb={[2, 2, 3, 4]}>
           <Box width={["56px", "72px", "110px", "140px"]} height={["56px", "72px", "110px", "140px"]}>
             <Image 
-              src="https://i.ibb.co/F4NQcPfH/image.png" 
+              src={require('../assets/images/logoicontext.png')} 
               alt="Via Greenhouse Logo"
               width="100%"
               height="100%"
@@ -385,7 +385,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           width="100%"
           height={["40px", "50px", "70px", "90px"]}
           zIndex={12}
-          backgroundImage={`url('https://freepngimg.com/download/grass/26-grass-png-image-green-picture.png')`}
+          backgroundImage={`url('${require('../assets/images/grass.png')}')`}
           backgroundRepeat="repeat-x"
           backgroundSize={["auto 40px", "auto 60px", "auto 90px", "auto 120px"]}
           backgroundPosition="bottom center"
@@ -404,7 +404,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             zIndex={9}
           >
             <Image
-              src="https://i.ibb.co/kg31X8Kq/image.png"
+              src={require('../assets/images/tree.png')}
               alt="Tree"
               objectFit="contain"
               width="100%"
@@ -424,7 +424,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             zIndex={13}
           >
             <Image
-              src="https://static.vecteezy.com/system/resources/previews/022/541/396/non_2x/floral-illustration-design-in-orange-color-free-png.png"
+              src={require('../assets/images/flower.png')}
               alt="Orange Flower"
               objectFit="contain"
               width="100%"
@@ -444,7 +444,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             zIndex={13}
           >
             <Image
-              src="https://static.vecteezy.com/system/resources/previews/009/384/082/non_2x/flower-in-pot-clipart-design-illustration-free-png.png"
+              src={require('../assets/images/flower-pot.png')}
               alt="Flower in Pot"
               objectFit="contain"
               width="100%"
@@ -464,8 +464,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             zIndex={13}
           >
             <Image
-              src="https://pngcore.com/files/preview/800x800/11696259736vlogkdkpb1qxokuso8bkvzwexrpzuonmqcfcz49u9rvp4p0ktmjmkklh2gsboyrhfg2li5rzzosux3j8za4uyahrh0mwg6cok2fk.png"
-              alt="Flower"
+              src={require('../assets/images/butterfly.png')}
+              alt="Butterfly"
               objectFit="contain"
               width="100%"
               height="100%"
