@@ -130,7 +130,6 @@ class PredictionController {
    */
   async testDatabaseConnection(req: Request, res: Response) {
     try {
-      console.log("Testing database connection...");
 
       // First ensure the table exists
       await predictionModel.ensureTableExists();
@@ -210,17 +209,13 @@ class PredictionController {
       let source = 'database';
       
       try {
-        console.log("Attempting to fetch predictions from database");
         predictionData = await predictionModel.getPredictions(hours, limit);
         
         // If no data in database, automatically generate some
         if (!predictionData || predictionData.length === 0) {
-          console.log("No prediction data in database, generating new predictions");
-          
           try {
             // Generate and store new predictions
             const count = await predictionModel.generatePredictions();
-            console.log(`Generated and stored ${count} new prediction records`);
             
             // Now fetch the newly created predictions
             predictionData = await predictionModel.getPredictions(hours, limit);
@@ -233,34 +228,28 @@ class PredictionController {
             console.error("Error generating predictions:", genError);
             
             // Only use mock data if we still have no data after trying to generate
-            console.log("Falling back to mock data as last resort");
             predictionData = generateMockPredictions(hours);
             source = 'mock';
             
             // Try to save the mock data to database
             try {
               const savedCount = await predictionModel.savePredictionBatch(predictionData);
-              console.log(`Saved ${savedCount} mock records to database`);
               source = 'mock saved to database';
             } catch (saveError) {
               console.error("Failed to save mock data to database:", saveError);
             }
           }
-        } else {
-          console.log(`Successfully retrieved ${predictionData.length} prediction records from database`);
         }
       } catch (dbError) {
         console.error('Error fetching from database:', dbError);
         
         // Generate mock data
-        console.log("Database error, generating mock data");
         predictionData = generateMockPredictions(hours);
         source = 'mock (database error)';
         
         // Try to save the mock data to database
         try {
           const savedCount = await predictionModel.savePredictionBatch(predictionData);
-          console.log(`Saved ${savedCount} mock records to database after error`);
           source = 'mock saved to database after error';
         } catch (saveError) {
           console.error("Failed to save mock data to database after error:", saveError);
@@ -286,7 +275,6 @@ class PredictionController {
    */
   async generatePredictions(req: Request, res: Response) {
     try {
-      console.log("Starting prediction generation process");
       
       // First try to generate predictions using the database model
       try {
@@ -295,7 +283,6 @@ class PredictionController {
         
         // Generate new predictions
         const count = await predictionModel.generatePredictions();
-        console.log(`Successfully generated ${count} prediction records in database`);
         
         // Return success response
         return res.status(200).json({
@@ -309,12 +296,10 @@ class PredictionController {
         
         // If database fails, generate mock data and try to save it to database
         const mockData = generateMockPredictions(24);
-        console.log(`Generated ${mockData.length} mock prediction records`);
-        
+
         try {
           // Try to save the mock data to the database
           const count = await predictionModel.savePredictionBatch(mockData);
-          console.log(`Successfully saved ${count} mock predictions to database`);
           
           return res.status(200).json({
             success: true,

@@ -241,7 +241,6 @@ const Devices: React.FC<{}> = () => {
       
       setError("");
     } catch (err) {
-      console.error("Error fetching devices:", err);
       setError("Could not connect to server. Make sure the backend is running.");
       // Only set empty array in case of error, otherwise keep current data
       // setDevices([]);
@@ -323,19 +322,15 @@ const Devices: React.FC<{}> = () => {
 
         // Get token from localStorage
         const token = localStorage.getItem('token');
-        console.log('Using token for device toggle:', token ? token.substring(0, 15) + '...' : 'No token found');
 
         // Get user data from localStorage
         try {
           const userDataStr = localStorage.getItem('user');
           if (userDataStr) {
             const userData = JSON.parse(userDataStr);
-            console.log('User data from localStorage:', userData);
-          } else {
-            console.log('No user data in localStorage');
           }
         } catch (err) {
-          console.error('Error parsing user data:', err);
+          // User data parsing error
         }
 
         // Clean API request like in Dashboard
@@ -359,7 +354,6 @@ const Devices: React.FC<{}> = () => {
 
         // Get updated state from server
         const result = await response.json();
-        console.log('Toggle device response:', result);
 
         // Update UI with server state (if different from optimistic update)
         if (result.device) {
@@ -370,7 +364,6 @@ const Devices: React.FC<{}> = () => {
           );
         }
       } catch (err) {
-        console.error("Error toggling device:", err);
         // Revert the optimistic update in case of failure
         setError("Failed to update device status. Please try again.");
         setDevices(

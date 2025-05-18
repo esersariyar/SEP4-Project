@@ -72,7 +72,6 @@ const formatChartXAxis = (timeStr: string): string => {
     
     return formattedTime;
   } catch (e) {
-    console.error('Error formatting x-axis label:', e);
     return '';
   }
 };
@@ -198,7 +197,6 @@ const Predictions: React.FC = () => {
       setIsRefreshing(true);
       
       // Fetch prediction data
-      console.log(`📊 Fetching prediction data for range: ${range}...`);
       const response = await fetch(`${API_URL}/api/predictions?range=${range}`);
       
       if (!response.ok) {
@@ -206,7 +204,6 @@ const Predictions: React.FC = () => {
       }
       
       const data = await response.json();
-      console.log('📊 Prediction data received:', data.data?.length || 0, 'records');
       
       // Update state
       if (data.data && data.data.length > 0) {
@@ -218,7 +215,6 @@ const Predictions: React.FC = () => {
         }
       } else {
         // If no data returned, use local mock data
-        console.log('No prediction data received, using local mock data');
         setPredictionData(generateLocalMockData(getHoursFromRange(range)));
         setDataSource('local mock');
       }
@@ -230,10 +226,8 @@ const Predictions: React.FC = () => {
         setIsRefreshing(false);
       }, 1000);
     } catch (err) {
-      console.error('Error fetching prediction data:', err);
       
       // Fall back to local mock data on error
-      console.log('Using local mock data due to API error');
       setPredictionData(generateLocalMockData(getHoursFromRange(range)));
       setDataSource('local mock (API error)');
       
@@ -267,7 +261,6 @@ const Predictions: React.FC = () => {
       setIsGenerating(true);
       setError(null);
       
-      console.log("📊 Generating prediction data...");
       const response = await fetch(`${API_URL}/api/predictions/generate`, {
         method: 'POST',
         headers: {
@@ -276,7 +269,6 @@ const Predictions: React.FC = () => {
       });
       
       const result = await response.json();
-      console.log("📊 Prediction data generation result:", result);
       
       if (!response.ok) {
         throw new Error(`HTTP Error: ${response.status} - ${result.message || 'Unknown error'}`);
@@ -288,7 +280,6 @@ const Predictions: React.FC = () => {
       // Refresh data after generation
       fetchPredictions(selectedRange);
     } catch (err) {
-      console.error("Error generating prediction data:", err);
       setError(err instanceof Error ? err.message : "Failed to generate prediction data");
       
       // Show error message
@@ -304,7 +295,6 @@ const Predictions: React.FC = () => {
 
   // Handle range selection
   const handleRangeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    console.log('Range changed to:', e.target.value);
     setSelectedRange(e.target.value);
     // Our useMemo hook (processedChartData) will automatically refilter the data based on the new range
   };
@@ -317,7 +307,6 @@ const Predictions: React.FC = () => {
     
     // Set up interval for refreshing data every 30 seconds
     const intervalId = setInterval(() => {
-      console.log('📊 Refresh interval triggered (30s)');
       fetchPredictions(selectedRange);
     }, 30000);
     
@@ -348,7 +337,6 @@ const Predictions: React.FC = () => {
         
         return new Date(); // Fallback
       } catch (e) {
-        console.error('Error parsing date:', dateStr, e);
         return new Date();
       }
     };
@@ -373,9 +361,6 @@ const Predictions: React.FC = () => {
     const now = new Date();
     const endTime = new Date(now.getTime() + (hours * 60 * 60 * 1000));
     
-    console.log(`Time range: From ${now.toLocaleString()} to ${endTime.toLocaleString()}`);
-    console.log(`Total data points: ${processedData.length}`);
-    
     // Filter data to selected time range
     const nowMs = now.getTime();
     const endTimeMs = endTime.getTime();
@@ -384,8 +369,6 @@ const Predictions: React.FC = () => {
     const filteredData = processedData.filter(item => {
       return item.ms >= nowMs && item.ms <= endTimeMs;
     });
-    
-    console.log(`Filtered to ${filteredData.length} points within selected range`);
     
     // Map to chart format
     return filteredData.map(item => ({

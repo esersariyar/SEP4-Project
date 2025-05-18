@@ -54,7 +54,6 @@ export const LineChart: React.FC<LineChartProps> = ({
       }
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } catch (e) {
-      console.error('Error formatting tick:', e);
       return '';
     }
   };
