@@ -38,14 +38,9 @@ class DataGeneratorService {
     this.lastTemp = newTemp;
     this.lastHumidity = newHumidity;
     
-    // Determine the prediction based on temperature and humidity
-    let prediction: 'Normal' | 'Warning' | 'Alert' = 'Normal';
-    if (newTemp > 27 || newHumidity > 65) {
-      prediction = 'Warning';
-    }
-    if (newTemp > 28.5 || newHumidity > 68) {
-      prediction = 'Alert';
-    }
+    // Generate soil humidity and CO2 levels (related to air conditions)
+    const soilHumidity = Math.min(Math.max(newHumidity * 0.9 + (Math.random() * 10 - 5), 30), 90);
+    const co2Level = 400 + Math.round((newTemp - 20) * 15 + (Math.random() * 50 - 25));
     
     const now = new Date();
     
@@ -58,8 +53,9 @@ class DataGeneratorService {
     
     const sensorData = {
       temperature: Number(newTemp.toFixed(1)),
-      humidity: Number(newHumidity.toFixed(1)),
-      prediction,
+      air_humidity: Number(newHumidity.toFixed(1)),
+      soil_humidity: Number(soilHumidity.toFixed(1)),
+      co2_level: Number(co2Level.toFixed(1)),
       timestamp
     };
     
@@ -77,39 +73,78 @@ class DataGeneratorService {
     
     this.isGenerating = true;
     
-    try {      
-      // Generate random values
-      const temperature = Math.round((22 + Math.random() * 12) * 10) / 10; // 22.0-33.9
-      const humidity = Math.round((50 + Math.random() * 40) * 10) / 10; // 50.0-89.9
-      
-      // Calculate prediction based on temperature and humidity
-      let prediction: 'Normal' | 'Warning' | 'Alert' = 'Normal';
-      if (temperature > 30 || humidity > 80) {
-        prediction = 'Warning';
-      }
-      if (temperature > 32 || humidity > 85) {
-        prediction = 'Alert';
-      }
-      
+    try {
       // Get current time in Denmark timezone
       const timeZone = 'Europe/Copenhagen';
-      const zonedTime = toZonedTime(new Date(), timeZone);
+      const now = new Date();
+      const zonedTime = toZonedTime(now, timeZone);
+      const currentHour = zonedTime.getHours();
+      
+      // Generate values based on time of day
+      // Morning (6-10): cooler temperatures
+      // Afternoon (11-17): warmer temperatures
+      // Evening (18-22): gradually cooling
+      // Night (23-5): coolest temperatures
+      let tempBase, tempVariation, airHumidityBase, airHumidityVariation;
+      
+      if (currentHour >= 6 && currentHour <= 10) {
+        // Morning - gradually warming up
+        tempBase = 21 + (currentHour - 6) * 0.5; // 21-23°C
+        tempVariation = 1.5;
+        airHumidityBase = 60;
+        airHumidityVariation = 5;
+      } else if (currentHour >= 11 && currentHour <= 17) {
+        // Afternoon - warmest part of day
+        tempBase = 24 + (currentHour - 11) * 0.3; // 24-25.8°C
+        tempVariation = 2;
+        airHumidityBase = 55;
+        airHumidityVariation = 7;
+      } else if (currentHour >= 18 && currentHour <= 22) {
+        // Evening - cooling down
+        tempBase = 25 - (currentHour - 18) * 0.7; // 25-22.2°C
+        tempVariation = 1.5;
+        airHumidityBase = 58;
+        airHumidityVariation = 6;
+      } else {
+        // Night - coolest
+        tempBase = 20;
+        tempVariation = 1;
+        airHumidityBase = 62;
+        airHumidityVariation = 4;
+      }
+      
+      // Add some randomness
+      const temperature = Math.round((tempBase + (Math.random() * 2 - 1) * tempVariation) * 10) / 10;
+      const airHumidity = Math.round((airHumidityBase + (Math.random() * 2 - 1) * airHumidityVariation) * 10) / 10;
+      
+      // Generate soil humidity (related to air humidity but with less variation)
+      const soilHumidity = Math.round((airHumidity * 0.9 + (Math.random() * 10 - 5)) * 10) / 10;
+      
+      // Generate CO2 level (related to temperature - higher temps = higher CO2)
+      const co2Level = Math.round((400 + (temperature - 20) * 15 + (Math.random() * 50 - 25)) * 10) / 10;
+      
       const timestamp = formatInTimeZone(zonedTime, timeZone, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
       
       // Create sensor data record
       const sensorData = {
         temperature,
-        humidity,
-        prediction,
+        air_humidity: airHumidity,
+        soil_humidity: soilHumidity,
+        co2_level: co2Level,
         timestamp: timestamp
       };
       
+      console.log(`[${new Date().toISOString()}] Data generated for saving: Temperature=${temperature}°C, Air Humidity=${airHumidity}%, Soil Humidity=${soilHumidity}%, CO2=${co2Level}ppm`);
+      
       // Save to database
       try {
-        await sensorModel.saveSensorData(sensorData);
+        const insertId = await sensorModel.saveSensorData(sensorData);
+        console.log(`[${new Date().toISOString()}] Data successfully saved to database! ID: ${insertId}`);
       } catch (error) {
-        // Database error - just swallow for now
+        console.error(`[${new Date().toISOString()}] ERROR: Failed to save data to database!`, error);
       }
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ERROR: Unexpected error in data generation!`, error);
     } finally {
       this.isGenerating = false;
     }
@@ -120,10 +155,12 @@ class DataGeneratorService {
    */
   start() {
     if (this.isRunning) {
+      console.log(`[${new Date().toISOString()}] Data generator service is already running.`);
       return;
     }
     
     this.isRunning = true;
+    console.log(`[${new Date().toISOString()}] Data generator service started! Will generate data every ${this.intervalSeconds} seconds.`);
     
     // Generate data immediately on start
     this.saveReading();
@@ -139,12 +176,14 @@ class DataGeneratorService {
    */
   stop() {
     if (!this.isRunning || !this.intervalId) {
+      console.log(`[${new Date().toISOString()}] Data generator service is already stopped.`);
       return;
     }
     
     clearInterval(this.intervalId);
     this.intervalId = null;
     this.isRunning = false;
+    console.log(`[${new Date().toISOString()}] Data generator service stopped.`);
   }
   
   /**

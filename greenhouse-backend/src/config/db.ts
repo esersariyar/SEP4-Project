@@ -28,4 +28,14 @@ const pool = mysql.createPool({
   timezone: 'Europe/Copenhagen'
 });
 
+// Test database connection
+pool.getConnection()
+  .then(connection => {
+    console.log(`[${new Date().toISOString()}] ✅ Database connection successful: ${DB_HOST}:${DB_PORT}/${DB_NAME}`);
+    connection.release();
+  })
+  .catch(err => {
+    console.error(`[${new Date().toISOString()}] ❌ Database connection error:`, err);
+  });
+
 export default pool;

@@ -28,8 +28,17 @@ export const LineChart: React.FC<LineChartProps> = ({
 }) => {
 
   const validData = useMemo(() => {
-    return filterValidChartData(data, xAxisKey);
-  }, [data, xAxisKey]);
+    // Check if we actually have valid data in a deeper way
+    const filteredData = filterValidChartData(data, xAxisKey);
+    
+    // Verify that at least one data point has values for each of the yAxisKeys
+    return filteredData.filter(item => {
+      return yAxisKeys.some(keyObj => {
+        const value = item[keyObj.key];
+        return value !== undefined && value !== null && !isNaN(Number(value));
+      });
+    });
+  }, [data, xAxisKey, yAxisKeys]);
 
 
   const formatTick = (value: string) => {
@@ -57,9 +66,14 @@ export const LineChart: React.FC<LineChartProps> = ({
         border: '1px solid #eee',
         borderRadius: '8px',
         color: '#666',
-        backgroundColor: '#f9f9f9'
+        backgroundColor: '#f9f9f9',
+        flexDirection: 'column'
       }}>
-        No valid data available for chart
+        <div style={{ fontSize: '2rem', color: '#999', marginBottom: '1rem' }}>📊</div>
+        <div style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>No valid data available</div>
+        <div style={{ fontSize: '0.9rem', maxWidth: '80%', textAlign: 'center' }}>
+          There are no valid data points for the selected time range. Try adjusting the time range or check the data source.
+        </div>
       </div>
     );
   }

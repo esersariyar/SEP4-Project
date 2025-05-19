@@ -4,5 +4,4 @@
 
 // Re-export all utility functions
 export * from './formatters';
-export * from './chartHelpers';
-export * from './demoData'; 
+export * from './chartHelpers'; 

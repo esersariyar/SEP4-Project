@@ -1,13 +1,13 @@
-import express from 'express';
+import express, { RequestHandler } from 'express';
 import sensorController from '../controllers/sensorController';
 
 const router = express.Router();
 
 // Get current sensor data
-router.get('/', sensorController.getCurrentData);
+router.get('/', sensorController.getCurrentData as RequestHandler);
 
 // Get historical sensor data
-router.get('/history', sensorController.getHistoricalData);
+router.get('/history', sensorController.getHistoricalData as RequestHandler);
 
 // Create new sensor data entry
 router.post('/', sensorController.createSensorData);

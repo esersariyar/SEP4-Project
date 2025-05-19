@@ -5,9 +5,10 @@ import { RowDataPacket } from 'mysql2';
 export interface SensorData {
   id?: number;
   temperature: number;
-  humidity: number;
-  prediction: 'Normal' | 'Alert' | 'Warning';
-  timestamp: string;
+  air_humidity: number;
+  soil_humidity: number;
+  co2_level: number;
+  timestamp?: string;
 }
 
 class SensorModel {
@@ -24,48 +25,58 @@ class SensorModel {
     try {
       const connection = await pool.getConnection();
       
-      // First check if there's any data in the database
-      const [countResult] = await connection.query<RowDataPacket[]>('SELECT COUNT(*) as count FROM sensor_data');
-      const count = countResult[0].count;
-      
-      if (count === 0) {
-        // Database is empty
-        connection.release();
-        return [];
-      }
-      
-      // Get timestamp for X hours ago in Denmark timezone
-      const now = new Date();
-      const hoursAgo = new Date(now.getTime() - (hours * 60 * 60 * 1000));
-      
-      // Format timestamps for MySQL query
-      const nowFormatted = now.toISOString().slice(0, 19).replace('T', ' ');
-      const hoursAgoFormatted = hoursAgo.toISOString().slice(0, 19).replace('T', ' ');
-      
-      // Query with limit
-      const [rows] = await connection.query<RowDataPacket[]>(
-        'SELECT * FROM sensor_data WHERE timestamp BETWEEN ? AND ? ORDER BY timestamp ASC LIMIT ?',
-        [hoursAgoFormatted, nowFormatted, limit]
+      // Veritabanındaki tüm kayıtları kontrol et
+      const [allRecords] = await connection.query<RowDataPacket[]>(
+        `SELECT 
+          id,
+          timestamp,
+          temperature
+        FROM sensor_data 
+        ORDER BY timestamp DESC 
+        LIMIT 20`
       );
       
+      console.log('Veritabanındaki son 20 kayıt:', allRecords.map(record => ({
+        id: record.id,
+        timestamp: record.timestamp,
+        temperature: record.temperature
+      })));
+
+      // Şimdi tüm kayıtları al
+      const [records] = await connection.query<RowDataPacket[]>(
+        `SELECT 
+          id,
+          temperature,
+          air_humidity,
+          soil_humidity,
+          co2_level,
+          timestamp
+        FROM sensor_data 
+        ORDER BY timestamp DESC`  // En yeni kayıtlar önce
+      );
+
+      console.log('Sorgu sonuçları:', {
+        toplamKayit: records.length,
+        enYeniKayit: records[0]?.timestamp,
+        enEskiKayit: records[records.length - 1]?.timestamp
+      });
+
+      // Verileri dönüştür ve sırala
+      const data: SensorData[] = records
+        .map((row: any) => ({
+          id: row.id,
+          temperature: row.temperature,
+          air_humidity: row.air_humidity,
+          soil_humidity: row.soil_humidity,
+          co2_level: row.co2_level,
+          timestamp: row.timestamp
+        }))
+        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()); // Eski kayıtlar önce
+
       connection.release();
-      
-      // Map the rows to the SensorData type
-      const data: SensorData[] = rows.map((row: any) => ({
-        id: row.id,
-        temperature: row.temperature,
-        humidity: row.humidity,
-        prediction: row.prediction,
-        timestamp: row.timestamp
-      }));
-      
-      // If data is empty or less than needed
-      if (data.length === 0) {
-        return [];
-      }
-      
       return data;
     } catch (error) {
+      console.error('Veri çekerken hata:', error);
       throw error;
     }
   }
@@ -100,11 +111,26 @@ class SensorModel {
 
 
   async saveSensorData(data: SensorData): Promise<number> {
-    const [result] = await pool.query(
-      'INSERT INTO sensor_data (temperature, humidity, prediction, timestamp) VALUES (?, ?, ?, ?)',
-      [data.temperature, data.humidity, data.prediction, data.timestamp || this.getCurrentDenmarkTimeISOString()]
-    );
-    return (result as any).insertId;
+    try {
+      console.log(`[${new Date().toISOString()}] Saving data to database:`, data);
+      
+      const [result] = await pool.query(
+        'INSERT INTO sensor_data (temperature, air_humidity, soil_humidity, co2_level, timestamp) VALUES (?, ?, ?, ?, ?)',
+        [
+          data.temperature, 
+          data.air_humidity, 
+          data.soil_humidity, 
+          data.co2_level, 
+          data.timestamp || this.getCurrentDenmarkTimeISOString()
+        ]
+      );
+      
+      console.log(`[${new Date().toISOString()}] Database result:`, result);
+      return (result as any).insertId;
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] Error saving data to database:`, error);
+      throw error;
+    }
   }
 
   /**
@@ -116,15 +142,16 @@ class SensorModel {
     }
     
     // Create the values part of the query for multiple inserts
-    const placeholders = dataList.map(() => '(?, ?, ?, ?)').join(', ');
+    const placeholders = dataList.map(() => '(?, ?, ?, ?, ?)').join(', ');
     const values = dataList.flatMap(data => [
       data.temperature, 
-      data.humidity, 
-      data.prediction, 
+      data.air_humidity, 
+      data.soil_humidity, 
+      data.co2_level, 
       data.timestamp || this.getCurrentDenmarkTimeISOString()
     ]);
     
-    const query = `INSERT INTO sensor_data (temperature, humidity, prediction, timestamp) VALUES ${placeholders}`;
+    const query = `INSERT INTO sensor_data (temperature, air_humidity, soil_humidity, co2_level, timestamp) VALUES ${placeholders}`;
     
     const [result] = await pool.query(query, values);
     

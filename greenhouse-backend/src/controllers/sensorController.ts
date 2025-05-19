@@ -17,8 +17,9 @@ const getCurrentDenmarkTimeISOString = (): string => {
 const mockCurrentData: SensorData = {
   id: 1,
   temperature: 24.5,
-  humidity: 56.8,
-  prediction: 'Normal',
+  air_humidity: 56.8,
+  soil_humidity: 45.2,
+  co2_level: 450.0,
   timestamp: getCurrentDenmarkTimeISOString()
 };
 
@@ -44,11 +45,15 @@ const generateMockHistoricalData = (hours = 24): SensorData[] => {
       "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
     );
     
+    const temp = 20 + Math.random() * 10;
+    const airHumidity = 45 + Math.random() * 25;
+    
     data.push({
       id: i + 1,
-      temperature: 20 + Math.random() * 10,
-      humidity: 45 + Math.random() * 25,
-      prediction: Math.random() > 0.7 ? 'Warning' : (Math.random() > 0.9 ? 'Alert' : 'Normal'),
+      temperature: temp,
+      air_humidity: airHumidity,
+      soil_humidity: airHumidity * 0.9 + (Math.random() * 10 - 5),
+      co2_level: 400 + (temp - 20) * 15 + (Math.random() * 50 - 25),
       timestamp: denmarkTimestamp
     });
   }
@@ -83,25 +88,21 @@ class SensorController {
   async getCurrentData(req: Request, res: Response) {
     try {
       let sensorData: SensorData;
-      let source = 'database';
       
       try {
         sensorData = await sensorModel.getCurrentData();
         
         if (!sensorData) {
-          throw new Error('No data available in database');
+          return res.status(404).json({ message: 'Veritabanında hiç veri bulunamadı' });
         }
+        
+        res.status(200).json(sensorData);
       } catch (dbError) {
-        source = 'mock';
-        sensorData = mockCurrentData;
+        console.error('Veritabanı hatası:', dbError);
+        res.status(500).json({ message: 'Veritabanı bağlantısında hata oluştu' });
       }
-      
-      res.status(200).json({
-        ...sensorData,
-        _source: source
-      });
     } catch (error) {
-      res.status(500).json({ message: 'Server error fetching sensor data' });
+      res.status(500).json({ message: 'Sensor verisi alınırken sunucu hatası oluştu' });
     }
   }
 
@@ -109,88 +110,35 @@ class SensorController {
   async getHistoricalData(req: Request, res: Response) {
     try {
       const range = (req.query.range as string) || '24h';
-      let hours = 24; // Default to 24 hours
-      
-      switch (range) {
-        case '1h':
-          hours = 1;
-          break;
-        case '6h':
-          hours = 6;
-          break;
-        case '12h':
-          hours = 12;
-          break;
-        case '24h':
-          hours = 24;
-          break;
-        case '7d':
-          hours = 24 * 7;
-          break;
-        case '30d':
-          hours = 24 * 30;
-          break;
-        default:
-          hours = 24;
-      }
-      
       const limit = parseInt(req.query.limit as string) || 100;
       
-      let sensorData: SensorData[];
-      let source = 'database';
-      
-      
       // Get data from model
-      sensorData = await sensorModel.getHistoricalData(hours, limit);
+      const sensorData = await sensorModel.getHistoricalData(24, limit);
       
-      // Check if data exists
       if (sensorData && sensorData.length > 0) {
-        // Data exists in database
+        console.log('Controller - Veri durumu:', {
+          toplamKayit: sensorData.length,
+          enYeniKayit: sensorData[sensorData.length - 1]?.timestamp,
+          enEskiKayit: sensorData[0]?.timestamp
+        });
+
+        // Eğer veri sayısı limiti aşıyorsa örnekleme yap
+        let finalData = sensorData;
+        if (sensorData.length > limit) {
+          finalData = downsampleData(sensorData, limit);
+        }
+
+        res.status(200).json({ 
+          data: finalData,
+          range,
+          count: finalData.length
+        });
       } else {
-        // Use mock data if no data exists
-        source = 'mock';
-        const mockDataPoints = Math.max(hours, 10);
-        sensorData = generateMockHistoricalData(mockDataPoints);
+        res.status(404).json({ message: 'Bu sensör için veri bulunamadı' });
       }
-      
-      // Check if data exists after mock generation
-      if (sensorData.length === 0) {
-        res.status(404).json({ message: 'No data found for this sensor' });
-        return;
-      }
-      
-      // Sort by timestamp
-      const sortedData = sensorData.sort((a, b) => {
-        const dateA = new Date(a.timestamp);
-        const dateB = new Date(b.timestamp);
-        return dateA.getTime() - dateB.getTime();
-      });
-      
-      // Apply sampling if exceeding limit
-      let finalData = sortedData;
-      if (sortedData.length > limit) {
-        finalData = downsampleData(sortedData, limit);
-      }
-      
-      // Convert timestamps to user-friendly format
-      const formattedData = finalData.map(data => {
-        // Use ISO string format instead of custom formatting to avoid timezone issues
-        const timestamp = new Date(data.timestamp);
-        return {
-          ...data,
-          timestamp: timestamp.toISOString()
-        };
-      });
-      
-      res.status(200).json({ 
-        data: formattedData,
-        range,
-        hours,
-        count: formattedData.length,
-        _source: source
-      });
     } catch (error) {
-      res.status(500).json({ message: 'Server error fetching historical data' });
+      console.error('Geçmiş veri çekerken hata:', error);
+      res.status(500).json({ message: 'Geçmiş veri çekerken sunucu hatası' });
     }
   }
 
@@ -235,7 +183,9 @@ class SensorController {
       
       // Initialize with reasonable values
       let currentTemp = 23.5;
-      let currentHumidity = 55.0;
+      let currentAirHumidity = 55.0;
+      let currentSoilHumidity = 50.0;
+      let currentCO2Level = 450.0;
       let recordsGenerated = 0;
       
       // Create a batch insert function to improve performance
@@ -260,30 +210,30 @@ class SensorController {
         
         // Random variation
         const tempChange = (Math.random() * 2 - 1) * 0.3; // Small random fluctuation
-        const humidityChange = (Math.random() * 4 - 2) * 0.5; // Larger fluctuation for humidity
+        const airHumidityChange = (Math.random() * 4 - 2) * 0.5; // Larger fluctuation for humidity
         
         // Calculate new values
         currentTemp += tempChange + (dayFactor * 1.5) + (weekendFactor * 0.5);
-        currentHumidity += humidityChange - (dayFactor * 0.8); // Humidity tends to be inverse of temperature
+        currentAirHumidity += airHumidityChange - (dayFactor * 0.8); // Humidity tends to be inverse of temperature
         
         // Keep values within realistic bounds
         currentTemp = Math.min(Math.max(currentTemp, 18), 30);
-        currentHumidity = Math.min(Math.max(currentHumidity, 45), 70);
+        currentAirHumidity = Math.min(Math.max(currentAirHumidity, 45), 70);
         
-        // Determine prediction based on temperature and humidity
-        let prediction: 'Normal' | 'Warning' | 'Alert' = 'Normal';
-        if (currentTemp > 27 || currentHumidity > 65) {
-          prediction = 'Warning';
-        }
-        if (currentTemp > 28.5 || currentHumidity > 68) {
-          prediction = 'Alert';
-        }
+        // Calculate soil humidity (related to air humidity but changes more slowly)
+        currentSoilHumidity = currentSoilHumidity * 0.95 + currentAirHumidity * 0.05 + (Math.random() * 2 - 1);
+        currentSoilHumidity = Math.min(Math.max(currentSoilHumidity, 40), 80);
+        
+        // Calculate CO2 level (related to temperature)
+        currentCO2Level = 400 + (currentTemp - 20) * 15 + (Math.random() * 30 - 15);
+        currentCO2Level = Math.min(Math.max(currentCO2Level, 350), 800);
         
         // Create the sensor data record
         const sensorData: SensorData = {
           temperature: Number(currentTemp.toFixed(1)),
-          humidity: Number(currentHumidity.toFixed(1)),
-          prediction,
+          air_humidity: Number(currentAirHumidity.toFixed(1)),
+          soil_humidity: Number(currentSoilHumidity.toFixed(1)),
+          co2_level: Number(currentCO2Level.toFixed(1)),
           timestamp: timestamp.toISOString()
         };
         
