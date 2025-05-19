@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
-import { PredictionChart } from './ui/PredictionChart';
+import { ChakraLineChart } from './ui/chakra-chart';
 import {
   Box,
   Flex,
@@ -22,6 +22,8 @@ interface PredictionData {
   predicted_temp: number;
   predicted_air_humidity: number;
   predicted_soil_humidity: number;
+  predicted_co2_level: number;
+  predicted_light_lux: number;
   timestamp: string;
 }
 
@@ -29,7 +31,9 @@ interface PredictionData {
 const ranges = {
   temp: { min: 15, max: 35, ideal: { min: 22, max: 28 } },
   air_humidity: { min: 35, max: 75, ideal: { min: 50, max: 65 } },
-  soil_humidity: { min: 30, max: 70, ideal: { min: 45, max: 60 } }
+  soil_humidity: { min: 30, max: 70, ideal: { min: 45, max: 60 } },
+  co2_level: { min: 400, max: 1500, ideal: { min: 700, max: 1200 } },
+  light_lux: { min: 0, max: 2000, ideal: { min: 800, max: 1800 } }
 };
 
 // Time range options for the prediction data
@@ -45,122 +49,10 @@ const timeRangeOptions = [
 const sensorTypes = [
   { id: 'temp', label: 'Temperature', unit: '°C', color: '#ff6b6b' },
   { id: 'air_humidity', label: 'Air Humidity', unit: '%', color: '#4dabf7' },
-  { id: 'soil_humidity', label: 'Soil Humidity', unit: '%', color: '#20c997' }
+  { id: 'soil_humidity', label: 'Soil Humidity', unit: '%', color: '#20c997' },
+  { id: 'co2_level', label: 'CO2 Level', unit: 'ppm', color: '#845ef7' },
+  { id: 'light_lux', label: 'Light', unit: 'lux', color: '#fcc419' }
 ];
-
-// Helper function to format X-axis labels for the chart
-const formatChartXAxis = (timeStr: string): string => {
-  try {
-    const date = new Date(timeStr);
-    if (isNaN(date.getTime())) {
-      return 'Invalid';
-    }
-    
-    // Check if date is part of a multi-day range
-    const now = new Date();
-    const isToday = date.getDate() === now.getDate() && 
-                    date.getMonth() === now.getMonth() && 
-                    date.getFullYear() === now.getFullYear();
-    
-    const formattedTime = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    
-    // For dates not on the current day, include the date
-    if (!isToday) {
-      const dateStr = date.toLocaleDateString([], { month: 'numeric', day: 'numeric' });
-      return `${dateStr}, ${formattedTime}`;
-    }
-    
-    return formattedTime;
-  } catch (e) {
-    return '';
-  }
-};
-
-// Function to generate mock data in case the API fails completely
-const generateLocalMockData = (hours = 24): PredictionData[] => {
-  const data: PredictionData[] = [];
-  const now = new Date();
-  
-  // Create realistic base values
-  const baseTemp = 22.5 + (Math.random() * 1.5); // Range: 22.5-24°C
-  const baseAirHumidity = 53.0 + (Math.random() * 3.0); // Range: 53-56%
-  const baseSoilHumidity = 48.0 + (Math.random() * 2.0); // Range: 48-50%
-  
-  // Create realistic variations
-  // Day-night cycle (approx 2°C difference)
-  const dayTemp = baseTemp + 1.0;
-  const nightTemp = baseTemp - 1.0;
-  
-  // Day-night humidity (inverse to temperature, 5-8% difference)
-  const dayAirHumidity = baseAirHumidity - 3.0;
-  const nightAirHumidity = baseAirHumidity + 5.0;
-  
-  // Generate data points at 30-minute intervals for more natural curves
-  const interval = hours <= 6 ? 0.25 : hours <= 24 ? 0.5 : 1; // 15min, 30min or 1hr intervals
-  const dataPoints = Math.ceil(hours / interval);
-  
-  // Get the current hour for day/night cycle alignment
-  const currentHour = now.getHours();
-  
-  // Calculate precise data points
-  for (let i = 0; i < dataPoints; i++) {
-    // Calculate timestamp for this data point
-    const timestamp = new Date(now);
-    const hourOffset = i * interval;
-    const wholeHours = Math.floor(hourOffset);
-    const fractionalHour = hourOffset - wholeHours;
-    const minutes = Math.round(fractionalHour * 60);
-    
-    timestamp.setHours(timestamp.getHours() + wholeHours);
-    timestamp.setMinutes(timestamp.getMinutes() + minutes);
-    timestamp.setSeconds(0);
-    timestamp.setMilliseconds(0);
-    
-    // Determine where in day/night cycle we are (0-1 value, 0=midnight, 0.5=noon)
-    const hourOfDay = (currentHour + hourOffset) % 24;
-    const dayProgress = hourOfDay / 24;
-    
-    // Sinusoidal pattern for day-night cycle (peaks at noon, lowest at midnight)
-    const dayFactor = Math.sin((dayProgress * 2 - 0.5) * Math.PI);
-    
-    // Calculate temperature with day-night cycle
-    let temp = baseTemp + (dayFactor * 1.2);
-    
-    // Calculate humidity with inverse day-night cycle
-    let airHumidity = baseAirHumidity - (dayFactor * 4.0);
-    let soilHumidity = baseSoilHumidity - (dayFactor * 1.2);
-    
-    // Add small random variations (0.1-0.3°C/%)
-    temp += (Math.random() * 0.2) - 0.1;
-    airHumidity += (Math.random() * 0.6) - 0.3;
-    soilHumidity += (Math.random() * 0.4) - 0.2;
-    
-    // Add subtle trends for longer predictions (gradual changes over days)
-    if (hours > 24) {
-      // Day factor (0-1 over the span of days)
-      const dayNumber = hourOffset / 24;
-      
-      // Sinusoidal multi-day patterns (subtle weather changes)
-      const multiDayFactor = Math.sin(dayNumber * Math.PI / 3) * 0.5; // 6-day cycle
-      
-      // Apply multi-day trends
-      temp += multiDayFactor * 0.8;
-      airHumidity += multiDayFactor * -2.0; // Inverse relationship
-      soilHumidity += multiDayFactor * -1.0; // Soil responds more slowly
-    }
-    
-    // Add data point with well-formatted values
-    data.push({
-      id: i + 1,
-      predicted_temp: Number(temp.toFixed(1)),
-      predicted_air_humidity: Number(airHumidity.toFixed(1)),
-      predicted_soil_humidity: Number(soilHumidity.toFixed(1)),
-      timestamp: timestamp.toISOString()
-    });
-  }
-  
-  return data;
-};
 
 const Predictions: React.FC = () => {
   // State for predictions
@@ -176,6 +68,9 @@ const Predictions: React.FC = () => {
   const [messageType, setMessageType] = useState<'success' | 'error' | null>(null);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   
+  // Track if this is the first render
+  const isFirstRender = useRef<boolean>(true);
+  
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
 
   // Show a message
@@ -188,6 +83,68 @@ const Predictions: React.FC = () => {
       setMessageType(null);
     }, 5000);
   };
+
+  // Helper function to parse date strings consistently to UTC Date objects
+  const parseDate = (dateStr: string): Date => {
+    try {
+      // Handle MySQL datetime format (YYYY-MM-DD HH:MM:SS)
+      if (dateStr.includes(' ') && dateStr.indexOf('-') === 4 && dateStr.length === 19) {
+        const isoUtcStr = dateStr.replace(' ', 'T') + 'Z';
+        const date = new Date(isoUtcStr);
+        if (!isNaN(date.getTime())) {
+          return date;
+        }
+        const parts = dateStr.split(' ');
+        const dateParts = parts[0].split('-');
+        const timeParts = parts[1].split(':');
+        const year = parseInt(dateParts[0], 10);
+        const month = parseInt(dateParts[1], 10) - 1;
+        const day = parseInt(dateParts[2], 10);
+        const hour = parseInt(timeParts[0], 10);
+        const minute = parseInt(timeParts[1], 10);
+        const second = parseInt(timeParts[2], 10);
+        const utcDateFromParts = new Date(Date.UTC(year, month, day, hour, minute, second));
+        if (!isNaN(utcDateFromParts.getTime())) {
+          return utcDateFromParts;
+        }
+      }
+      const date = new Date(dateStr);
+      if (!isNaN(date.getTime())) {
+        return date;
+      }
+      console.warn(`Failed to parse date string: ${dateStr}, falling back to current date.`);
+      return new Date();
+    } catch (e) {
+      console.error(`Error parsing date string: ${dateStr}`, e);
+      return new Date();
+    }
+  };
+
+  // Helper function to format X-axis labels for the chart (UTC formatting)
+  const formatChartXAxis = useCallback((timeStr: string): string => {
+    try {
+      const date = parseDate(timeStr);
+      if (isNaN(date.getTime())) {
+        return 'Invalid';
+      }
+      // selectedRange is directly accessible here from the component's state
+      if (['6h', '12h', '24h'].includes(selectedRange)) {
+        return date.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+          timeZone: 'UTC'
+        });
+      } else { // For '3d', '7d', etc.
+        const day = date.getUTCDate().toString().padStart(2, '0');
+        const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+        return `${month}/${day}`;
+      }
+    } catch (e) {
+      console.error("Error formatting chart X-axis:", e, "Input:", timeStr);
+      return 'Err';
+    }
+  }, [selectedRange, parseDate]); // Add dependencies for useCallback
 
   // Fetch prediction data from the API
   const fetchPredictions = useCallback(async (range = selectedRange) => {
@@ -205,18 +162,28 @@ const Predictions: React.FC = () => {
       
       const data = await response.json();
       
-      // Update state
-      if (data.data && data.data.length > 0) {
-        setPredictionData(data.data);
+      // Check if the database is empty
+      if (data.empty === true) {
+        setPredictionData([]);
+        setDataSource('empty database');
+      }
+      // Update state if we have data
+      else if (data.data && data.data.length > 0) {
+        // Store the data directly without causing re-renders until we're ready
+        const predictionsData = data.data;
+        
+        // Update state atomically to avoid multiple renders
+        setPredictionData(predictionsData);
         setLastUpdated(new Date());
         
         if (data._source) {
           setDataSource(data._source);
         }
-      } else {
-        // If no data returned, use local mock data
-        setPredictionData(generateLocalMockData(getHoursFromRange(range)));
-        setDataSource('local mock');
+      } 
+      // No data in response
+      else {
+        // Show error when no data is returned from the API
+        throw new Error('No prediction data available. Please generate predictions first.');
       }
       
       setIsLoading(false);
@@ -226,20 +193,14 @@ const Predictions: React.FC = () => {
         setIsRefreshing(false);
       }, 1000);
     } catch (err) {
-      
-      // Fall back to local mock data on error
-      setPredictionData(generateLocalMockData(getHoursFromRange(range)));
-      setDataSource('local mock (API error)');
-      
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('An unknown error occurred');
-      }
+      // Show error instead of falling back to local mock data
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      setPredictionData([]);
+      setDataSource('error');
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [API_URL]);
+  }, [API_URL]); // Remove selectedRange from dependencies to avoid causality issues
 
   // Convert range string to hours
   const getHoursFromRange = (range: string): number => {
@@ -280,28 +241,28 @@ const Predictions: React.FC = () => {
       // Refresh data after generation
       fetchPredictions(selectedRange);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to generate prediction data");
-      
       // Show error message
-      showMessage(err instanceof Error ? err.message : "Failed to generate prediction data", 'error');
-      
-      // Generate mock data locally as a fallback
-      setPredictionData(generateLocalMockData(getHoursFromRange(selectedRange)));
-      setDataSource('local mock (generation failed)');
+      const errorMessage = err instanceof Error ? err.message : "Failed to generate prediction data";
+      setError(errorMessage);
+      showMessage(errorMessage, 'error');
+      setPredictionData([]);
+      setDataSource('error');
     } finally {
       setIsGenerating(false);
     }
   };
 
-  // Handle range selection
-  const handleRangeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedRange(e.target.value);
-    // Our useMemo hook (processedChartData) will automatically refilter the data based on the new range
-  };
+  const handleRangeChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newRange = e.target.value;
+    // First update the state
+    setSelectedRange(newRange);
+    // Then fetch new data
+    fetchPredictions(newRange);
+  }, [fetchPredictions]);
 
   // Initialize with API data
   useEffect(() => {
-    // Initial data fetch
+    // Initial data fetch when component mounts
     setIsLoading(true); 
     fetchPredictions(selectedRange);
     
@@ -310,46 +271,46 @@ const Predictions: React.FC = () => {
       fetchPredictions(selectedRange);
     }, 30000);
     
-    return () => clearInterval(intervalId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetchPredictions]); // Remove selectedRange from dependencies
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [fetchPredictions]); // Don't include selectedRange to prevent re-triggering
+
+  // Add a separate effect to handle range changes
+  useEffect(() => {
+    // Skip the first render to avoid duplicate API calls
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    
+    // Fetch data when range changes (after first render)
+    fetchPredictions(selectedRange);
+  }, [selectedRange, fetchPredictions]);
 
   // Process data for the chart based on selected sensor type and time range
   const processedChartData = useMemo(() => {
     if (!predictionData.length) return [];
     
-    // Parse dates consistently
-    const parseDate = (dateStr: string): Date => {
-      try {
-        // Handle MySQL datetime format (YYYY-MM-DD HH:MM:SS)
-        if (dateStr.includes(' ') && dateStr.indexOf('-') === 4) {
-          const [datePart, timePart] = dateStr.split(' ');
-          const [year, month, day] = datePart.split('-').map(Number);
-          const [hour, minute, second] = timePart.split(':').map(Number);
-          return new Date(year, month - 1, day, hour, minute, second);
-        }
-        
-        // Standard ISO string format
-        const date = new Date(dateStr);
-        if (!isNaN(date.getTime())) {
-          return date;
-        }
-        
-        return new Date(); // Fallback
-      } catch (e) {
-        return new Date();
-      }
+    // parseDate is now defined in the component scope, accessible here if needed
+    // but it's primarily used by formatChartXAxis which is passed to the chart.
+    // The direct parsing for 'ms' and 'parsedDate' for sorting/filtering should still happen here.
+
+    const internalParseDateForSort = (dateStr: string): Date => {
+        // This is a simplified local parser if needed, or just use the main `parseDate`
+        // For sorting and filtering, we primarily need a valid Date object.
+        // The main `parseDate` (now in component scope) ensures UTC interpretation.
+        return parseDate(dateStr); 
     };
-    
-    // Process all data points
+
     const processedData = predictionData
       .map(item => {
-        const parsedDate = parseDate(item.timestamp);
+        const parsedDt = internalParseDateForSort(item.timestamp); // Use the correctly scoped parseDate
         return {
           ...item,
-          parsedDate,
-          timestamp: item.timestamp,
-          ms: parsedDate.getTime()
+          parsedDate: parsedDt, // Store the Date object
+          timestamp: item.timestamp, // Keep original string for x-axis key if chart expects string
+          ms: parsedDt.getTime()
         };
       })
       .sort((a, b) => a.ms - b.ms);
@@ -378,7 +339,11 @@ const Predictions: React.FC = () => {
         ? item.predicted_temp 
         : selectedSensorType === 'air_humidity' 
           ? item.predicted_air_humidity 
-          : item.predicted_soil_humidity
+          : selectedSensorType === 'soil_humidity' 
+            ? item.predicted_soil_humidity 
+            : selectedSensorType === 'co2_level' 
+              ? item.predicted_co2_level 
+              : item.predicted_light_lux
     }));
   }, [predictionData, selectedSensorType, selectedRange]);
 
@@ -499,6 +464,54 @@ const Predictions: React.FC = () => {
       });
     }
     
+    // CO2 level insights
+    if (currentReading.predicted_co2_level < ranges.co2_level.ideal.min) {
+      insights.push({
+        type: 'warning',
+        icon: '🌬️',
+        message: 'CO2 levels are predicted to be low. Consider CO2 supplementation for better plant growth.',
+        sensor: 'co2_level'
+      });
+    } else if (currentReading.predicted_co2_level > ranges.co2_level.ideal.max) {
+      insights.push({
+        type: 'warning',
+        icon: '☁️',
+        message: 'CO2 levels are predicted to be high. Improve ventilation for a better growing environment.',
+        sensor: 'co2_level'
+      });
+    } else {
+      insights.push({
+        type: 'success',
+        icon: '👍',
+        message: 'CO2 levels are predicted to stay in ideal range. Excellent for photosynthesis.',
+        sensor: 'co2_level'
+      });
+    }
+    
+    // Light lux insights
+    if (currentReading.predicted_light_lux < ranges.light_lux.ideal.min) {
+      insights.push({
+        type: 'warning',
+        icon: '🌑',
+        message: 'Light levels are predicted to be low. Consider supplemental lighting for better growth.',
+        sensor: 'light_lux'
+      });
+    } else if (currentReading.predicted_light_lux > ranges.light_lux.ideal.max) {
+      insights.push({
+        type: 'warning',
+        icon: '☀️',
+        message: 'Light levels are predicted to be high. Consider shading to prevent leaf burn.',
+        sensor: 'light_lux'
+      });
+    } else {
+      insights.push({
+        type: 'success',
+        icon: '👍',
+        message: 'Light levels are predicted to stay in ideal range. Perfect for healthy plant growth.',
+        sensor: 'light_lux'
+      });
+    }
+    
     return insights;
   }, [currentReading]);
 
@@ -560,7 +573,7 @@ const Predictions: React.FC = () => {
           >
             <Flex align="center">
               <Box as="span" mr={2} fontSize="xl">⚠️</Box>
-              <Text>Error from API: {error}. Using fallback data.</Text>
+              <Text>Error from API: {error}</Text>
             </Flex>
           </Box>
         )}
@@ -621,10 +634,19 @@ const Predictions: React.FC = () => {
             <Text color="gray.600">Loading prediction data...</Text>
           </Flex>
         ) : predictionData.length === 0 ? (
-          <Box p={6} bg="blue.50" color="blue.600" borderRadius="lg" textAlign="center" boxShadow="sm">
-            <Box as="span" fontSize="3xl" mb={3} display="block">🌱</Box>
-            <Text fontSize="lg" mb={2} fontWeight="medium">No predictions available yet</Text>
-            <Text>Click "Generate New Predictions" to create prediction data for your greenhouse.</Text>
+          <Box p={6} bg={error ? "red.50" : "blue.50"} color={error ? "red.600" : "blue.600"} borderRadius="lg" textAlign="center" boxShadow="sm">
+            <Box as="span" fontSize="3xl" mb={3} display="block">{error ? "⚠️" : "🌱"}</Box>
+            <Text fontSize="lg" mb={2} fontWeight="medium">
+              {error ? "Connection Error" : dataSource === 'empty database' ? "Database is Empty" : "No predictions available yet"}
+            </Text>
+            <Text>
+              {error 
+                ? `${error}. Please try again later or check your database connection.` 
+                : dataSource === 'empty database'
+                  ? "Click \"Generate New Predictions\" to create prediction data for your greenhouse."
+                  : "Click \"Generate New Predictions\" to create prediction data for your greenhouse."
+              }
+            </Text>
           </Box>
         ) : (
           <>
@@ -667,15 +689,16 @@ const Predictions: React.FC = () => {
                   </Flex>
                 </Box>
                 
-                <SimpleGrid columns={{ base: 1, md: 3 }} gap={0} bg="white">
+                {/* First row - 3 items */}
+                <SimpleGrid columns={{ base: 1, md: 3 }} gap={6} bg="white" p={4}>
                   <Box 
-                    p={5} 
+                    p={6} 
                     borderRadius="lg" 
                     bg="white"
-                    borderBottom={{ base: "1px solid", md: "none" }}
-                    borderRight={{ md: "1px solid" }}
+                    borderWidth="1px"
                     borderColor="gray.200"
                     position="relative"
+                    boxShadow="sm"
                   >
                     <Flex justify="space-between" align="center" mb={3}>
                       <Flex align="center">
@@ -731,12 +754,12 @@ const Predictions: React.FC = () => {
                   </Box>
                   
                   <Box 
-                    p={5} 
+                    p={6} 
                     borderRadius="lg" 
                     bg="white"
-                    borderBottom={{ base: "1px solid", md: "none" }}
-                    borderRight={{ md: "1px solid" }}
+                    borderWidth="1px"
                     borderColor="gray.200"
+                    boxShadow="sm"
                   >
                     <Flex justify="space-between" align="center" mb={3}>
                       <Flex align="center">
@@ -792,9 +815,12 @@ const Predictions: React.FC = () => {
                   </Box>
                   
                   <Box 
-                    p={5} 
+                    p={6} 
                     borderRadius="lg" 
                     bg="white"
+                    borderWidth="1px"
+                    borderColor="gray.200"
+                    boxShadow="sm"
                   >
                     <Flex justify="space-between" align="center" mb={3}>
                       <Flex align="center">
@@ -849,6 +875,131 @@ const Predictions: React.FC = () => {
                     </Text>
                   </Box>
                 </SimpleGrid>
+                
+                {/* Second row - 2 items (centered) */}
+                <SimpleGrid columns={{ base: 1, md: 2 }} gap={6} bg="white" maxW={{ md: "66.67%" }} mx="auto" p={4} pb={6}>
+                  <Box 
+                    p={6} 
+                    borderRadius="lg" 
+                    bg="white"
+                    borderWidth="1px"
+                    borderColor="gray.200"
+                    boxShadow="sm"
+                  >
+                    <Flex justify="space-between" align="center" mb={3}>
+                      <Flex align="center">
+                        <Box 
+                          as="span" 
+                          mr={2} 
+                          fontSize="xl"
+                          bg="purple.100" 
+                          color="purple.500" 
+                          p={1} 
+                          borderRadius="md"
+                        >
+                          ☁️
+                        </Box>
+                        <Text fontWeight="bold" fontSize="lg">CO2 Level</Text>
+                      </Flex>
+                      
+                      <Box 
+                        py={1} 
+                        px={3} 
+                        borderRadius="full"
+                        bg={getReadingColor('co2_level', currentReading.predicted_co2_level) + '20'}
+                        color={getReadingColor('co2_level', currentReading.predicted_co2_level)}
+                        fontWeight="bold"
+                        fontSize="sm"
+                      >
+                        {currentReading.predicted_co2_level < ranges.co2_level.ideal.min ? 'Too Low' : 
+                         currentReading.predicted_co2_level > ranges.co2_level.ideal.max ? 'Too High' : 'Optimal'}
+                      </Box>
+                    </Flex>
+                    
+                    <Flex align="baseline">
+                      <Text 
+                        fontSize="4xl" 
+                        fontWeight="bold"
+                        color={getReadingColor('co2_level', currentReading.predicted_co2_level)}
+                        lineHeight="1"
+                      >
+                        {currentReading.predicted_co2_level}
+                      </Text>
+                      <Text 
+                        fontSize="xl" 
+                        color={getReadingColor('co2_level', currentReading.predicted_co2_level)}
+                        ml={1}
+                      >
+                        ppm
+                      </Text>
+                    </Flex>
+                    
+                    <Text fontSize="xs" color="gray.500" mt={2}>
+                      Ideal range: {ranges.co2_level.ideal.min}-{ranges.co2_level.ideal.max} ppm
+                    </Text>
+                  </Box>
+                  
+                  <Box 
+                    p={6} 
+                    borderRadius="lg" 
+                    bg="white"
+                    borderWidth="1px"
+                    borderColor="gray.200"
+                    boxShadow="sm"
+                  >
+                    <Flex justify="space-between" align="center" mb={3}>
+                      <Flex align="center">
+                        <Box 
+                          as="span" 
+                          mr={2} 
+                          fontSize="xl"
+                          bg="yellow.100" 
+                          color="yellow.500" 
+                          p={1} 
+                          borderRadius="md"
+                        >
+                          ☀️
+                        </Box>
+                        <Text fontWeight="bold" fontSize="lg">Light</Text>
+                      </Flex>
+                      
+                      <Box 
+                        py={1} 
+                        px={3} 
+                        borderRadius="full"
+                        bg={getReadingColor('light_lux', currentReading.predicted_light_lux) + '20'}
+                        color={getReadingColor('light_lux', currentReading.predicted_light_lux)}
+                        fontWeight="bold"
+                        fontSize="sm"
+                      >
+                        {currentReading.predicted_light_lux < ranges.light_lux.ideal.min ? 'Too Dim' : 
+                         currentReading.predicted_light_lux > ranges.light_lux.ideal.max ? 'Too Bright' : 'Optimal'}
+                      </Box>
+                    </Flex>
+                    
+                    <Flex align="baseline">
+                      <Text 
+                        fontSize="4xl" 
+                        fontWeight="bold"
+                        color={getReadingColor('light_lux', currentReading.predicted_light_lux)}
+                        lineHeight="1"
+                      >
+                        {currentReading.predicted_light_lux}
+                      </Text>
+                      <Text 
+                        fontSize="xl" 
+                        color={getReadingColor('light_lux', currentReading.predicted_light_lux)}
+                        ml={1}
+                      >
+                        lux
+                      </Text>
+                    </Flex>
+                    
+                    <Text fontSize="xs" color="gray.500" mt={2}>
+                      Ideal range: {ranges.light_lux.ideal.min}-{ranges.light_lux.ideal.max} lux
+                    </Text>
+                  </Box>
+                </SimpleGrid>
               </Box>
             )}
             
@@ -868,29 +1019,89 @@ const Predictions: React.FC = () => {
                   Recommended Actions
                 </Heading>
                 
-                <SimpleGrid columns={{ base: 1, md: 3 }} gap={5}>
-                  {generatedInsights.map((insight, index) => (
-                    <Box 
-                      key={index}
-                      p={4}
-                      borderRadius="md"
-                      bg={insight.type === 'warning' ? 'yellow.50' : 'green.50'}
-                      border="1px solid"
-                      borderColor={insight.type === 'warning' ? 'yellow.200' : 'green.200'}
-                    >
-                      <Flex mb={2} align="center">
-                        <Box fontSize="2xl" mr={2}>{insight.icon}</Box>
-                        <Text fontWeight="bold" color={insight.type === 'warning' ? 'yellow.700' : 'green.700'}>
-                          {insight.sensor === 'temperature' ? 'Temperature' : 
-                            insight.sensor === 'air_humidity' ? 'Air Humidity' : 'Soil Humidity'}
+                {generatedInsights.length <= 3 ? (
+                  <SimpleGrid columns={{ base: 1, md: 3 }} gap={5}>
+                    {generatedInsights.map((insight, index) => (
+                      <Box 
+                        key={index}
+                        p={4}
+                        borderRadius="md"
+                        bg={insight.type === 'warning' ? 'yellow.50' : 'green.50'}
+                        border="1px solid"
+                        borderColor={insight.type === 'warning' ? 'yellow.200' : 'green.200'}
+                      >
+                        <Flex mb={2} align="center">
+                          <Box fontSize="2xl" mr={2}>{insight.icon}</Box>
+                          <Text fontWeight="bold" color={insight.type === 'warning' ? 'yellow.700' : 'green.700'}>
+                            {insight.sensor === 'temperature' ? 'Temperature' : 
+                              insight.sensor === 'air_humidity' ? 'Air Humidity' : 
+                              insight.sensor === 'soil_humidity' ? 'Soil Humidity' :
+                              insight.sensor === 'co2_level' ? 'CO2 Level' : 'Light'}
+                          </Text>
+                        </Flex>
+                        <Text color={insight.type === 'warning' ? 'yellow.800' : 'green.800'}>
+                          {insight.message}
                         </Text>
-                      </Flex>
-                      <Text color={insight.type === 'warning' ? 'yellow.800' : 'green.800'}>
-                        {insight.message}
-                      </Text>
-                    </Box>
-                  ))}
-                </SimpleGrid>
+                      </Box>
+                    ))}
+                  </SimpleGrid>
+                ) : (
+                  <Box>
+                    {/* First row - 3 items */}
+                    <SimpleGrid columns={{ base: 1, md: 3 }} gap={5} mb={5}>
+                      {generatedInsights.slice(0, 3).map((insight, index) => (
+                        <Box 
+                          key={index}
+                          p={4}
+                          borderRadius="md"
+                          bg={insight.type === 'warning' ? 'yellow.50' : 'green.50'}
+                          border="1px solid"
+                          borderColor={insight.type === 'warning' ? 'yellow.200' : 'green.200'}
+                        >
+                          <Flex mb={2} align="center">
+                            <Box fontSize="2xl" mr={2}>{insight.icon}</Box>
+                            <Text fontWeight="bold" color={insight.type === 'warning' ? 'yellow.700' : 'green.700'}>
+                              {insight.sensor === 'temperature' ? 'Temperature' : 
+                                insight.sensor === 'air_humidity' ? 'Air Humidity' : 
+                                insight.sensor === 'soil_humidity' ? 'Soil Humidity' :
+                                insight.sensor === 'co2_level' ? 'CO2 Level' : 'Light'}
+                            </Text>
+                          </Flex>
+                          <Text color={insight.type === 'warning' ? 'yellow.800' : 'green.800'}>
+                            {insight.message}
+                          </Text>
+                        </Box>
+                      ))}
+                    </SimpleGrid>
+
+                    {/* Second row - remaining items (centered) */}
+                    <SimpleGrid columns={{ base: 1, md: 2 }} gap={5} maxW={{ md: "66%" }} mx="auto">
+                      {generatedInsights.slice(3).map((insight, index) => (
+                        <Box 
+                          key={index + 3}
+                          p={4}
+                          borderRadius="md"
+                          bg={insight.type === 'warning' ? 'yellow.50' : 'green.50'}
+                          border="1px solid"
+                          borderColor={insight.type === 'warning' ? 'yellow.200' : 'green.200'}
+                        >
+                          <Flex mb={2} align="center">
+                            <Box fontSize="2xl" mr={2}>{insight.icon}</Box>
+                            <Text fontWeight="bold" color={insight.type === 'warning' ? 'yellow.700' : 'green.700'}>
+                              {insight.sensor === 'temperature' ? 'Temperature' : 
+                                insight.sensor === 'air_humidity' ? 'Air Humidity' : 
+                                insight.sensor === 'soil_humidity' ? 'Soil Humidity' :
+                                insight.sensor === 'co2_level' ? 'CO2 Level' : 'Light'}
+                            </Text>
+                          </Flex>
+                          <Text color={insight.type === 'warning' ? 'yellow.800' : 'green.800'}>
+                            {insight.message}
+                          </Text>
+                        </Box>
+                      ))}
+                    </SimpleGrid>
+                  </Box>
+                )}
               </Box>
             )}
             
@@ -925,19 +1136,19 @@ const Predictions: React.FC = () => {
                   boxShadow="sm"
                 >
                   <Text fontWeight="medium" fontSize="sm" mb={2} color="gray.700">Prediction Range:</Text>
-                  <select 
-                    value={selectedRange} 
+                  <select
+                    value={selectedRange}
                     onChange={handleRangeChange}
                     style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      backgroundColor: 'white',
-                      border: '1px solid #E2E8F0',
-                      borderRadius: '6px',
-                      color: '#2D3748',
-                      fontWeight: '500',
-                      cursor: 'pointer',
-                      marginBottom: '8px'
+                      backgroundColor: "#f7fafc",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "0.375rem",
+                      padding: "0.5rem",
+                      fontSize: "0.875rem",
+                      outline: "none",
+                      width: "100%",
+                      cursor: "pointer",
+                      marginBottom: "8px"
                     }}
                   >
                     {timeRangeOptions.map(option => (
@@ -982,8 +1193,15 @@ const Predictions: React.FC = () => {
                           {type.label} ({type.unit}) / Date & Time
                         </Text>
                       </Box>
-                      <Box h="400px">
-                        <PredictionChart
+                      <Box 
+                        h="400px" 
+                        w="100%" 
+                        overflowX="hidden" 
+                        className="chart-animation" 
+                        key={`chart-container-${selectedRange}-${selectedSensorType}-${type.id}`}
+                      >
+                        <ChakraLineChart
+                          key={`chart-${selectedRange}-${selectedSensorType}-${type.id}-${lastUpdated.getTime()}`}
                           data={processedChartData}
                           xAxisKey="timestamp"
                           yAxisKeys={[{ 
@@ -993,7 +1211,20 @@ const Predictions: React.FC = () => {
                           }]}
                           height={380}
                           formatXAxis={formatChartXAxis}
-                          timeRange={selectedRange}
+                          referencePoints={[
+                            { 
+                              y: ranges[type.id as keyof typeof ranges].ideal.min, 
+                              label: 'Min Ideal', 
+                              color: '#38A169', 
+                              strokeDasharray: '5 5' 
+                            },
+                            { 
+                              y: ranges[type.id as keyof typeof ranges].ideal.max, 
+                              label: 'Max Ideal', 
+                              color: '#38A169', 
+                              strokeDasharray: '5 5' 
+                            }
+                          ]}
                         />
                       </Box>
                     </Box>
@@ -1148,5 +1379,4 @@ const Predictions: React.FC = () => {
   );
 };
 
-export default Predictions; 
-
+export default Predictions;
