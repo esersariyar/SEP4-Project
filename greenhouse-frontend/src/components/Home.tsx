@@ -108,9 +108,9 @@ const Home: React.FC = () => {
             gap={{ base: 6, md: 8 }}               /* bigger card spacing   */
           >
             {[
-              { icon: FaTemperatureHigh, title: 'Temperature', desc: 'Monitor ideal temperature', bg: 'green.50' },
-              { icon: FaWater,            title: 'Humidity',    desc: 'Track air and soil moisture', bg: 'blue.50'  },
-              { icon: FaSeedling,         title: 'Growth',      desc: 'Visualize growth trends',     bg: 'teal.50'  },
+              { icon: FaTemperatureHigh, title: 'Key Metrics', desc: 'Monitor critical conditions: temperature, air humidity, CO2, and light intensity.', bg: 'green.50' },
+              { icon: FaWater,            title: 'Live Data Stream',    desc: 'Access continuous sensor readings, updated every 10 seconds for real-time awareness.', bg: 'blue.50'  },
+              { icon: FaSeedling,         title: 'Growth Optimization',      desc: 'Leverage data insights to enhance plant health and maximize growth potential.',     bg: 'teal.50'  },
             ].map(({ icon, title, desc, bg }) => (
               <GridItem key={title}>
                 <Flex
