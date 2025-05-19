@@ -47,6 +47,51 @@ class DataGeneratorService {
     // Use Denmark timezone (Europe/Copenhagen)
     const timeZone = 'Europe/Copenhagen';
     const denmarkTime = toZonedTime(now, timeZone);
+    const currentHour = denmarkTime.getHours();
+    const currentMinute = denmarkTime.getMinutes();
+    
+    // Günün saatini 0-1 arasında normalize et (0:00 = 0, 12:00 = 1, 23:59 = 0.999)
+    const normalizedHour = (currentHour + currentMinute / 60) / 24;
+    
+    // Gün doğumu ve batımı için yumuşak geçiş faktörü (6:00-8:00 ve 16:00-18:00 arası)
+    let dayFactor = 0;
+    if (currentHour >= 6 && currentHour < 8) {
+      // Gün doğumu (6:00-8:00)
+      dayFactor = (currentHour - 6 + currentMinute / 60) / 2;
+    } else if (currentHour >= 16 && currentHour < 18) {
+      // Gün batımı (16:00-18:00)
+      dayFactor = 1 - (currentHour - 16 + currentMinute / 60) / 2;
+    } else if (currentHour >= 8 && currentHour < 16) {
+      // Tam gündüz
+      dayFactor = 1;
+    } else {
+      // Gece (minimum ışık)
+      dayFactor = 0.1;
+    }
+    
+    // Işık seviyesi hesaplama
+    let lightLux;
+    if (dayFactor > 0.1) {
+      // Gündüz veya geçiş zamanı
+      const baseLight = 2000; // Minimum gündüz ışığı
+      const maxLight = 10000; // Maksimum gündüz ışığı
+      const variation = Math.sin(normalizedHour * Math.PI * 2) * 1000; // Gün içi dalgalanma
+      lightLux = Math.round((baseLight + (maxLight - baseLight) * dayFactor + variation) * 10) / 10;
+    } else {
+      // Gece (LED ışıklar)
+      const baseNightLight = 500; // Minimum gece ışığı
+      const maxNightLight = 1000; // Maksimum gece ışığı
+      lightLux = Math.round((baseNightLight + Math.random() * (maxNightLight - baseNightLight)) * 10) / 10;
+    }
+    
+    console.log(`[${new Date().toISOString()}] Işık seviyesi hesaplaması:`, {
+      currentHour,
+      currentMinute,
+      normalizedHour,
+      dayFactor,
+      lightLux,
+      isDaytime: dayFactor > 0.1
+    });
     
     // Create ISO timestamp string based on Denmark time
     const timestamp = formatInTimeZone(now, timeZone, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
@@ -56,6 +101,7 @@ class DataGeneratorService {
       air_humidity: Number(newHumidity.toFixed(1)),
       soil_humidity: Number(soilHumidity.toFixed(1)),
       co2_level: Number(co2Level.toFixed(1)),
+      light_lux: lightLux,
       timestamp
     };
     
@@ -79,48 +125,79 @@ class DataGeneratorService {
       const now = new Date();
       const zonedTime = toZonedTime(now, timeZone);
       const currentHour = zonedTime.getHours();
+      const currentMinute = zonedTime.getMinutes();
       
-      // Generate values based on time of day
-      // Morning (6-10): cooler temperatures
-      // Afternoon (11-17): warmer temperatures
-      // Evening (18-22): gradually cooling
-      // Night (23-5): coolest temperatures
+      // Günün saatini 0-1 arasında normalize et
+      const normalizedHour = (currentHour + currentMinute / 60) / 24;
+      
+      // Gün doğumu ve batımı için yumuşak geçiş faktörü
+      let dayFactor = 0;
+      if (currentHour >= 6 && currentHour < 8) {
+        // Gün doğumu (6:00-8:00)
+        dayFactor = (currentHour - 6 + currentMinute / 60) / 2;
+      } else if (currentHour >= 16 && currentHour < 18) {
+        // Gün batımı (16:00-18:00)
+        dayFactor = 1 - (currentHour - 16 + currentMinute / 60) / 2;
+      } else if (currentHour >= 8 && currentHour < 16) {
+        // Tam gündüz
+        dayFactor = 1;
+      } else {
+        // Gece (minimum ışık)
+        dayFactor = 0.1;
+      }
+      
+      // Işık seviyesi hesaplama
+      let lightLux;
+      if (dayFactor > 0.1) {
+        // Gündüz veya geçiş zamanı
+        const baseLight = 2000; // Minimum gündüz ışığı
+        const maxLight = 10000; // Maksimum gündüz ışığı
+        const variation = Math.sin(normalizedHour * Math.PI * 2) * 1000; // Gün içi dalgalanma
+        lightLux = Math.round((baseLight + (maxLight - baseLight) * dayFactor + variation) * 10) / 10;
+      } else {
+        // Gece (LED ışıklar)
+        const baseNightLight = 500; // Minimum gece ışığı
+        const maxNightLight = 1000; // Maksimum gece ışığı
+        lightLux = Math.round((baseNightLight + Math.random() * (maxNightLight - baseNightLight)) * 10) / 10;
+      }
+      
+      console.log(`[${new Date().toISOString()}] Işık seviyesi hesaplaması:`, {
+        currentHour,
+        currentMinute,
+        normalizedHour,
+        dayFactor,
+        lightLux,
+        isDaytime: dayFactor > 0.1
+      });
+      
+      // Diğer sensör değerlerini hesapla
       let tempBase, tempVariation, airHumidityBase, airHumidityVariation;
       
       if (currentHour >= 6 && currentHour <= 10) {
-        // Morning - gradually warming up
-        tempBase = 21 + (currentHour - 6) * 0.5; // 21-23°C
+        tempBase = 21 + (currentHour - 6) * 0.5;
         tempVariation = 1.5;
         airHumidityBase = 60;
         airHumidityVariation = 5;
       } else if (currentHour >= 11 && currentHour <= 17) {
-        // Afternoon - warmest part of day
-        tempBase = 24 + (currentHour - 11) * 0.3; // 24-25.8°C
+        tempBase = 24 + (currentHour - 11) * 0.3;
         tempVariation = 2;
         airHumidityBase = 55;
         airHumidityVariation = 7;
       } else if (currentHour >= 18 && currentHour <= 22) {
-        // Evening - cooling down
-        tempBase = 25 - (currentHour - 18) * 0.7; // 25-22.2°C
+        tempBase = 25 - (currentHour - 18) * 0.7;
         tempVariation = 1.5;
         airHumidityBase = 58;
         airHumidityVariation = 6;
       } else {
-        // Night - coolest
         tempBase = 20;
         tempVariation = 1;
         airHumidityBase = 62;
         airHumidityVariation = 4;
       }
       
-      // Add some randomness
       const temperature = Math.round((tempBase + (Math.random() * 2 - 1) * tempVariation) * 10) / 10;
       const airHumidity = Math.round((airHumidityBase + (Math.random() * 2 - 1) * airHumidityVariation) * 10) / 10;
-      
-      // Generate soil humidity (related to air humidity but with less variation)
       const soilHumidity = Math.round((airHumidity * 0.9 + (Math.random() * 10 - 5)) * 10) / 10;
-      
-      // Generate CO2 level (related to temperature - higher temps = higher CO2)
       const co2Level = Math.round((400 + (temperature - 20) * 15 + (Math.random() * 50 - 25)) * 10) / 10;
       
       const timestamp = formatInTimeZone(zonedTime, timeZone, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
@@ -131,10 +208,20 @@ class DataGeneratorService {
         air_humidity: airHumidity,
         soil_humidity: soilHumidity,
         co2_level: co2Level,
+        light_lux: lightLux,
         timestamp: timestamp
       };
       
-      console.log(`[${new Date().toISOString()}] Data generated for saving: Temperature=${temperature}°C, Air Humidity=${airHumidity}%, Soil Humidity=${soilHumidity}%, CO2=${co2Level}ppm`);
+      console.log(`[${new Date().toISOString()}] Veri üretildi:`, {
+        temperature: `${temperature}°C`,
+        airHumidity: `${airHumidity}%`,
+        soilHumidity: `${soilHumidity}%`,
+        co2Level: `${co2Level}ppm`,
+        lightLux: `${lightLux}lux`,
+        timestamp,
+        currentHour,
+        timeZone
+      });
       
       // Save to database
       try {

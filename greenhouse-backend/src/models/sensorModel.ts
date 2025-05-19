@@ -8,6 +8,7 @@ export interface SensorData {
   air_humidity: number;
   soil_humidity: number;
   co2_level: number;
+  light_lux: number;
   timestamp?: string;
 }
 
@@ -50,6 +51,7 @@ class SensorModel {
           air_humidity,
           soil_humidity,
           co2_level,
+          light_lux,
           timestamp
         FROM sensor_data 
         ORDER BY timestamp DESC`  // En yeni kayıtlar önce
@@ -69,6 +71,7 @@ class SensorModel {
           air_humidity: row.air_humidity,
           soil_humidity: row.soil_humidity,
           co2_level: row.co2_level,
+          light_lux: row.light_lux,
           timestamp: row.timestamp
         }))
         .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()); // Eski kayıtlar önce
@@ -114,14 +117,25 @@ class SensorModel {
     try {
       console.log(`[${new Date().toISOString()}] Saving data to database:`, data);
       
+      // Minimum değerleri kontrol et ve düzelt
+      const validatedData = {
+        ...data,
+        light_lux: Math.max(data.light_lux || 500, 500), // Minimum 500 lux
+        temperature: Math.max(data.temperature || 15, 15), // Minimum 15°C
+        air_humidity: Math.max(data.air_humidity || 30, 30), // Minimum 30%
+        soil_humidity: Math.max(data.soil_humidity || 30, 30), // Minimum 30%
+        co2_level: Math.max(data.co2_level || 400, 400) // Minimum 400 ppm
+      };
+      
       const [result] = await pool.query(
-        'INSERT INTO sensor_data (temperature, air_humidity, soil_humidity, co2_level, timestamp) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO sensor_data (temperature, air_humidity, soil_humidity, co2_level, light_lux, timestamp) VALUES (?, ?, ?, ?, ?, ?)',
         [
-          data.temperature, 
-          data.air_humidity, 
-          data.soil_humidity, 
-          data.co2_level, 
-          data.timestamp || this.getCurrentDenmarkTimeISOString()
+          validatedData.temperature, 
+          validatedData.air_humidity, 
+          validatedData.soil_humidity, 
+          validatedData.co2_level,
+          validatedData.light_lux,
+          validatedData.timestamp || this.getCurrentDenmarkTimeISOString()
         ]
       );
       
@@ -141,17 +155,28 @@ class SensorModel {
       return 0;
     }
     
+    // Verileri doğrula ve minimum değerleri ayarla
+    const validatedDataList = dataList.map(data => ({
+      ...data,
+      light_lux: Math.max(data.light_lux || 500, 500), // Minimum 500 lux
+      temperature: Math.max(data.temperature || 15, 15), // Minimum 15°C
+      air_humidity: Math.max(data.air_humidity || 30, 30), // Minimum 30%
+      soil_humidity: Math.max(data.soil_humidity || 30, 30), // Minimum 30%
+      co2_level: Math.max(data.co2_level || 400, 400) // Minimum 400 ppm
+    }));
+    
     // Create the values part of the query for multiple inserts
-    const placeholders = dataList.map(() => '(?, ?, ?, ?, ?)').join(', ');
-    const values = dataList.flatMap(data => [
+    const placeholders = validatedDataList.map(() => '(?, ?, ?, ?, ?, ?)').join(', ');
+    const values = validatedDataList.flatMap(data => [
       data.temperature, 
       data.air_humidity, 
       data.soil_humidity, 
-      data.co2_level, 
+      data.co2_level,
+      data.light_lux,
       data.timestamp || this.getCurrentDenmarkTimeISOString()
     ]);
     
-    const query = `INSERT INTO sensor_data (temperature, air_humidity, soil_humidity, co2_level, timestamp) VALUES ${placeholders}`;
+    const query = `INSERT INTO sensor_data (temperature, air_humidity, soil_humidity, co2_level, light_lux, timestamp) VALUES ${placeholders}`;
     
     const [result] = await pool.query(query, values);
     

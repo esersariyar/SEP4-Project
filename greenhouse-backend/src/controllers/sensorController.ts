@@ -20,6 +20,7 @@ const mockCurrentData: SensorData = {
   air_humidity: 56.8,
   soil_humidity: 45.2,
   co2_level: 450.0,
+  light_lux: 2000.0,
   timestamp: getCurrentDenmarkTimeISOString()
 };
 
@@ -54,6 +55,7 @@ const generateMockHistoricalData = (hours = 24): SensorData[] => {
       air_humidity: airHumidity,
       soil_humidity: airHumidity * 0.9 + (Math.random() * 10 - 5),
       co2_level: 400 + (temp - 20) * 15 + (Math.random() * 50 - 25),
+      light_lux: 2000 + Math.random() * 8000, // Gündüz için rastgele ışık seviyesi
       timestamp: denmarkTimestamp
     });
   }
@@ -186,6 +188,7 @@ class SensorController {
       let currentAirHumidity = 55.0;
       let currentSoilHumidity = 50.0;
       let currentCO2Level = 450.0;
+      let currentLightLux = 2000.0;
       let recordsGenerated = 0;
       
       // Create a batch insert function to improve performance
@@ -199,7 +202,6 @@ class SensorController {
         
         // Add some variability to temperature and humidity
         // More realistic changes: daily cycles, weekly patterns
-        
         // Daily cycle: temperatures higher during day, lower at night
         const hourOfDay = timestamp.getHours();
         const dayFactor = Math.sin((hourOfDay - 6) * Math.PI / 12); // Peak at noon, lowest at midnight
@@ -226,7 +228,16 @@ class SensorController {
         
         // Calculate CO2 level (related to temperature)
         currentCO2Level = 400 + (currentTemp - 20) * 15 + (Math.random() * 30 - 15);
-        currentCO2Level = Math.min(Math.max(currentCO2Level, 350), 800);
+        
+        // Calculate light level based on time of day
+        if (hourOfDay >= 6 && hourOfDay <= 18) { // Daytime
+          // Peak at noon (12:00), minimum at sunrise/sunset
+          const hourFactor = Math.sin((hourOfDay - 6) * Math.PI / 12);
+          currentLightLux = 2000 + hourFactor * 8000 + (Math.random() * 1000 - 500);
+        } else { // Nighttime
+          // Artificial light at night (LED grow lights)
+          currentLightLux = 500 + Math.random() * 500;
+        }
         
         // Create the sensor data record
         const sensorData: SensorData = {
@@ -234,6 +245,7 @@ class SensorController {
           air_humidity: Number(currentAirHumidity.toFixed(1)),
           soil_humidity: Number(currentSoilHumidity.toFixed(1)),
           co2_level: Number(currentCO2Level.toFixed(1)),
+          light_lux: Number(currentLightLux.toFixed(1)),
           timestamp: timestamp.toISOString()
         };
         

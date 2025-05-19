@@ -9,10 +9,18 @@ CREATE TABLE IF NOT EXISTS sensor_data (
   id INT AUTO_INCREMENT PRIMARY KEY,
   temperature DECIMAL(5,2) NOT NULL,
   humidity DECIMAL(5,2) NOT NULL,
+  air_humidity DECIMAL(5,2) NOT NULL,
+  soil_humidity DECIMAL(5,2) NOT NULL,
+  co2_level DECIMAL(5,2) NOT NULL,
+  light_lux DECIMAL(8,2) NOT NULL DEFAULT 0,
   prediction ENUM('Normal', 'Warning', 'Alert') NOT NULL DEFAULT 'Normal',
   timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_timestamp (timestamp)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Add light_lux column if it doesn't exist
+ALTER TABLE sensor_data
+ADD COLUMN IF NOT EXISTS light_lux DECIMAL(8,2) NOT NULL DEFAULT 0 AFTER co2_level;
 
 -- Create users table
 CREATE TABLE IF NOT EXISTS users (

@@ -125,7 +125,9 @@ const icons = {
   light: (props: any) => (
     <CustomIcon {...props}>
       <svg viewBox="0 0 24 24" width="2.5em" height="2.5em" fill="currentColor" strokeWidth="0.4">
-        <path d="M12,2A1,1,0,0,0,11,3V5a1,1,0,0,0,2,0V3A1,1,0,0,0,12,2ZM4.93,4.93A1,1,0,0,0,3.51,6.34L4.93,7.76A1,1,0,0,0,6.34,6.34ZM2,11a1,1,0,0,0,1,1H5a1,1,0,0,0,0-2H3A1,1,0,0,0,2,11ZM7.76,4.93,6.34,3.51A1,1,0,0,0,4.93,4.93L6.34,6.34A1,1,0,0,0,7.76,4.93ZM12,19a1,1,0,0,0-1,1v2a1,1,0,0,0,2,0V20A1,1,0,0,0,12,19ZM17.66,17.66a1,1,0,0,0-1.41,0,1,1,0,0,0,0,1.41l1.41,1.41a1,1,0,0,0,1.41-1.41ZM19,11a1,1,0,0,0,1-1V8a1,1,0,0,0-2,0v2A1,1,0,0,0,19,11ZM17.66,6.34a1,1,0,0,0,0-1.41L16.24,3.51a1,1,0,0,0-1.41,1.41L16.24,6.34A1,1,0,0,0,17.66,6.34ZM12,6a6,6,0,1,0,6,6A6,6,0,0,0,12,6Zm0,10a4,4,0,1,1,4-4A4,4,0,0,1,12,16Z" />
+        <path d="M12,2A10,10,0,1,0,22,12,10,10,0,0,0,12,2Zm0,18a8,8,0,1,1,8-8A8,8,0,0,1,12,20Z"/>
+        <path d="M12,6a6,6,0,0,0-6,6,5.89,5.89,0,0,0,.5,2.5L12,12l5.5,2.5A5.89,5.89,0,0,0,18,12,6,6,0,0,0,12,6Z"/>
+        <path d="M12,8a4,4,0,0,1,4,4,3.91,3.91,0,0,1-.33,1.5L12,13.5l-3.67-1A3.91,3.91,0,0,1,8,12,4,4,0,0,1,12,8Z"/>
       </svg>
     </CustomIcon>
   ),
@@ -243,7 +245,8 @@ const Dashboard: React.FC = () => {
         const processed: SensorData = {
           id: item.id || Math.random(),
           temperature: item.temperature || 0,
-          humidity: item.air_humidity || 0,
+          humidity: item.air_humidity || item.humidity || 0, // Eski API uyumluluğu için
+          soil_humidity: item.soil_humidity || 0,
           co2_level: item.co2_level || 0,
           light_lux: item.light_lux || 0,
           prediction: 'Normal',
@@ -252,11 +255,13 @@ const Dashboard: React.FC = () => {
         
         if (ensureNumber(processed.temperature) > 28 || 
             ensureNumber(processed.humidity) > 70 || 
+            ensureNumber(processed.soil_humidity as number | string) > 70 ||
             ensureNumber(processed.co2_level as number | string) > 1000 ||
             ensureNumber(processed.light_lux as number | string) > 10000) {
           processed.prediction = 'Alert';
         } else if (ensureNumber(processed.temperature) > 25 || 
                   ensureNumber(processed.humidity) > 65 || 
+                  ensureNumber(processed.soil_humidity as number | string) > 65 ||
                   ensureNumber(processed.co2_level as number | string) > 900 ||
                   ensureNumber(processed.light_lux as number | string) > 8000) {
           processed.prediction = 'Warning';
@@ -343,7 +348,8 @@ const Dashboard: React.FC = () => {
       const cleanedData: SensorData = {
         id: sensorData.id,
         temperature: sensorData.temperature,
-        humidity: sensorData.air_humidity,
+        humidity: sensorData.air_humidity || sensorData.humidity, // Eski API uyumluluğu için
+        soil_humidity: sensorData.soil_humidity || 0,
         co2_level: sensorData.co2_level || 0,
         light_lux: sensorData.light_lux || 0,
         prediction: 'Normal',
@@ -353,11 +359,13 @@ const Dashboard: React.FC = () => {
       // Set prediction based on all values
       if (ensureNumber(cleanedData.temperature) > 28 || 
           ensureNumber(cleanedData.humidity) > 70 || 
+          ensureNumber(cleanedData.soil_humidity as number | string) > 70 ||
           ensureNumber(cleanedData.co2_level as number | string) > 1000 ||
           ensureNumber(cleanedData.light_lux as number | string) > 10000) {
         cleanedData.prediction = 'Alert';
       } else if (ensureNumber(cleanedData.temperature) > 25 || 
                 ensureNumber(cleanedData.humidity) > 65 || 
+                ensureNumber(cleanedData.soil_humidity as number | string) > 65 ||
                 ensureNumber(cleanedData.co2_level as number | string) > 900 ||
                 ensureNumber(cleanedData.light_lux as number | string) > 8000) {
         cleanedData.prediction = 'Warning';
@@ -368,12 +376,13 @@ const Dashboard: React.FC = () => {
       if (previousData.current) {
         const prevTemp = previousData.current.temperature;
         const prevHumidity = previousData.current.humidity;
+        const prevSoilHumidity = previousData.current.soil_humidity;
         
         if (prevTemp !== cleanedData.temperature) {
           cleanedData._highlight = 'temperature';
         }
         
-        if (prevHumidity !== cleanedData.humidity) {
+        if (prevHumidity !== cleanedData.humidity || prevSoilHumidity !== cleanedData.soil_humidity) {
           cleanedData._highlight = cleanedData._highlight === 'temperature' ? 'both' : 'humidity';
         }
       }
@@ -680,53 +689,79 @@ const Dashboard: React.FC = () => {
           pb={3}
           borderBottomWidth="2px"
           borderBottomColor="gray.200"
+          direction={{ base: "column", md: "row" }}
+          gap={{ base: 4, md: 0 }}
         >
           <Heading 
             as="h1" 
-            size="xl"
+            size={{ base: "lg", md: "xl" }}
             color="green.600"
             display="flex"
             alignItems="center"
+            textAlign={{ base: "center", md: "left" }}
+            width={{ base: "100%", md: "auto" }}
           >
-            <Box mr={3}>{icons.barChart({ boxSize: 6 })}</Box> Via GreenHouse Dashboard
+            <Box mr={3}>{icons.barChart({ boxSize: { base: 5, md: 6 } })}</Box> Via GreenHouse Dashboard
           </Heading>
           
-          <Button
-            colorScheme="blue"
-            size="md"
-            onClick={() => {
-              setLoading(true);
-              setHistoryLoading(true);
-              fetchData();
-              fetchHistoricalData();
-            }}
-            boxShadow="sm"
-            _hover={{ boxShadow: "md" }}
-            disabled={loading && historyLoading}
+          <Flex 
+            align="center" 
+            gap={4}
+            width={{ base: "100%", md: "auto" }}
+            justify={{ base: "center", md: "flex-end" }}
+            flexWrap="wrap"
           >
-            {loading && historyLoading ? (
-              <Flex align="center">
-                <Spinner size="sm" mr={2} />
-                Refreshing...
+            <Box
+              bg={data?.prediction === 'Normal' ? 'green.100' : 
+                data?.prediction === 'Warning' ? 'orange.100' : 'red.100'}
+              p={{ base: 2, md: 3 }}
+              borderRadius="lg"
+              display="flex"
+              alignItems="center"
+              gap={2}
+              width={{ base: "100%", md: "auto" }}
+              justifyContent={{ base: "center", md: "flex-start" }}
+            >
+              <Flex direction="row" align="center" gap={2} flexWrap="wrap" justify="center">
+                {data?.prediction === 'Normal' ? icons.checkCircle({ 
+                  boxSize: { base: 4, md: 5 },
+                  color: 'green.500'
+                }) : data?.prediction === 'Warning' ? icons.alertTriangle({
+                  boxSize: { base: 4, md: 5 },
+                  color: 'orange.500'
+                }) : icons.alertCircle({
+                  boxSize: { base: 4, md: 5 },
+                  color: 'red.500'
+                })}
+                <Text 
+                  fontWeight="bold"
+                  fontSize={{ base: "sm", md: "md" }}
+                  color={data?.prediction === 'Normal' ? 'green.500' : 
+                    data?.prediction === 'Warning' ? 'orange.500' : 'red.500'}
+                  textAlign={{ base: "center", md: "left" }}
+                >
+                  {data?.prediction || 'Loading...'} - {data?.prediction === 'Normal' ? 'All parameters in safe range' : 
+                   data?.prediction === 'Warning' ? 'Some parameters near thresholds' : 
+                   data?.prediction === 'Alert' ? 'Immediate action required!' : 'Loading...'}
+                </Text>
               </Flex>
-            ) : (
-              <Flex align="center">
-                {icons.refresh({ boxSize: 4, mr: 2 })}
-                Refresh Data
-              </Flex>
-            )}
-          </Button>
+            </Box>
+          </Flex>
         </Flex>
         
         {/* Current Sensor Data Section */}
         <Box mb={8}>
-          <Flex align="center" mb={4}>
-            <Heading as="h2" size="lg" color="blue.500">
+          <Flex align="center" mb={4} justify={{ base: "center", md: "flex-start" }}>
+            <Heading as="h2" size={{ base: "md", md: "lg" }} color="blue.500">
               Current Sensor Data
             </Heading>
           </Flex>
       
-          <SimpleGrid columns={{ base: 1, md: 5 }} gap={6} mb={6}>
+          <SimpleGrid 
+            columns={{ base: 1, sm: 2, md: 4 }} 
+            gap={{ base: 4, md: 6 }} 
+            mb={6}
+          >
             {/* Temperature Card */}
             {loading ? (
               <CardSkeleton />
@@ -734,38 +769,49 @@ const Dashboard: React.FC = () => {
               <Box
                 _hover={{ transform: 'translateY(-5px)', boxShadow: 'lg' }}
                 _active={{ transform: 'scale(0.98)' }}
+                width="100%"
               >
                 <Box
                   bg="white"
-                  p={6}
+                  p={{ base: 4, md: 6 }}
                   borderRadius="xl"
                   boxShadow="md"
                   borderLeftWidth="4px"
                   borderLeftColor={ensureNumber(data?.temperature || 0) > 27 ? 'red.400' : 
                     ensureNumber(data?.temperature || 0) < 20 ? 'blue.400' : 'green.400'}
                   height="100%"
+                  width="100%"
                 >
-                  <Flex align="center" mb={4}>
+                  <Flex 
+                    align="center" 
+                    mb={4} 
+                    direction="row"
+                    textAlign="left"
+                    gap={4}
+                    width="100%"
+                  >
                     <Box
                       bg={ensureNumber(data?.temperature || 0) > 27 ? 'red.100' : 
                         ensureNumber(data?.temperature || 0) < 20 ? 'blue.100' : 'green.100'}
-                      p={4}
+                      p={{ base: 4, md: 4 }}
                       borderRadius="lg"
-                      mr={4}
                       display="flex"
                       alignItems="center"
                       justifyContent="center"
+                      flexShrink={0}
+                      width={{ base: "60px", md: "80px" }}
+                      height={{ base: "60px", md: "80px" }}
                     >
                       {icons.thermometer({ 
-                        boxSize: 10,
+                        boxSize: { base: 8, md: 10 },
                         color: ensureNumber(data?.temperature || 0) > 27 ? 'red.500' : 
                           ensureNumber(data?.temperature || 0) < 20 ? 'blue.500' : 'green.500'
                       })}
                     </Box>
-                    <Box>
-                      <Text fontWeight="bold" fontSize="lg" color="gray.600">Temperature</Text>
+                    <Box flex="1">
+                      <Text fontWeight="bold" fontSize={{ base: "md", md: "lg" }} color="gray.600">Temperature</Text>
                       <Text 
-                        fontSize="3xl" 
+                        fontSize={{ base: "2xl", md: "3xl" }} 
                         fontWeight="bold"
                         textAlign="left"
                         color={ensureNumber(data?.temperature || 0) > 27 ? 'red.500' : 
@@ -776,7 +822,7 @@ const Dashboard: React.FC = () => {
                     </Box>
                   </Flex>
                   
-                  <Text fontSize="sm" color="gray.500" mt={2} textAlign="left">
+                  <Text fontSize={{ base: "xs", md: "sm" }} color="gray.500" mt={2} textAlign="left">
                     Ideal range: <Badge colorScheme="green">18-30°C</Badge>
                   </Text>
                 </Box>
@@ -790,48 +836,70 @@ const Dashboard: React.FC = () => {
               <Box
                 _hover={{ transform: 'translateY(-5px)', boxShadow: 'lg' }}
                 _active={{ transform: 'scale(0.98)' }}
+                width="100%"
               >
                 <Box
                   bg="white"
-                  p={6}
+                  p={{ base: 4, md: 6 }}
                   borderRadius="xl"
                   boxShadow="md"
                   borderLeftWidth="4px"
                   borderLeftColor={ensureNumber(data?.humidity || 0) > 65 ? 'red.400' : 
                     ensureNumber(data?.humidity || 0) < 50 ? 'blue.400' : 'green.400'}
                   height="100%"
+                  width="100%"
                 >
-                  <Flex align="center" mb={4}>
+                  <Flex 
+                    align="center" 
+                    mb={4} 
+                    direction="row"
+                    textAlign="left"
+                    gap={4}
+                    width="100%"
+                  >
                     <Box
                       bg={ensureNumber(data?.humidity || 0) > 65 ? 'red.100' : 
                         ensureNumber(data?.humidity || 0) < 50 ? 'blue.100' : 'green.100'}
-                      p={4}
+                      p={{ base: 4, md: 4 }}
                       borderRadius="lg"
-                      mr={4}
                       display="flex"
                       alignItems="center"
                       justifyContent="center"
+                      flexShrink={0}
+                      width={{ base: "60px", md: "80px" }}
+                      height={{ base: "60px", md: "80px" }}
                     >
                       {icons.droplet({ 
-                        boxSize: 10,
+                        boxSize: { base: 8, md: 10 },
                         color: ensureNumber(data?.humidity || 0) > 65 ? 'red.500' : 
                           ensureNumber(data?.humidity || 0) < 50 ? 'blue.500' : 'green.500'
                       })}
                     </Box>
-                    <Box>
-                      <Text fontWeight="bold" fontSize="lg" color="gray.600">Humidity</Text>
-                      <Text 
-                        fontSize="3xl" 
-                        fontWeight="bold"
-                        color={ensureNumber(data?.humidity || 0) > 65 ? 'red.500' : 
-                          ensureNumber(data?.humidity || 0) < 50 ? 'blue.500' : 'green.500'}
-                      >
-                        {ensureNumber(data?.humidity || 0).toFixed(1)}%
-                      </Text>
+                    <Box flex="1">
+                      <Text fontWeight="bold" fontSize={{ base: "md", md: "lg" }} color="gray.600">Air + Soil Humidity</Text>
+                      <Flex align="center" gap={2}>
+                        <Text 
+                          fontSize={{ base: "2xl", md: "3xl" }} 
+                          fontWeight="bold"
+                          color={ensureNumber(data?.humidity || 0) > 65 ? 'red.500' : 
+                            ensureNumber(data?.humidity || 0) < 50 ? 'blue.500' : 'green.500'}
+                        >
+                          {ensureNumber(data?.humidity || 0).toFixed(1)}%
+                        </Text>
+                        <Text fontSize={{ base: "xl", md: "2xl" }} color="gray.400">|</Text>
+                        <Text 
+                          fontSize={{ base: "2xl", md: "3xl" }} 
+                          fontWeight="bold"
+                          color={ensureNumber(data?.soil_humidity || 0) > 65 ? 'red.500' : 
+                            ensureNumber(data?.soil_humidity || 0) < 50 ? 'blue.500' : 'green.500'}
+                        >
+                          {ensureNumber(data?.soil_humidity || 0).toFixed(1)}%
+                        </Text>
+                      </Flex>
                     </Box>
                   </Flex>
                   
-                  <Text fontSize="sm" color="gray.500" mt={2} textAlign="left">
+                  <Text fontSize={{ base: "xs", md: "sm" }} color="gray.500" mt={2} textAlign="left">
                     Ideal range: <Badge colorScheme="green">45-70%</Badge>
                   </Text>
                 </Box>
@@ -908,13 +976,13 @@ const Dashboard: React.FC = () => {
                   boxShadow="md"
                   borderLeftWidth="4px"
                   borderLeftColor={ensureNumber(data?.light_lux || 0) > 10000 ? 'red.400' : 
-                    ensureNumber(data?.light_lux || 0) < 2000 ? 'blue.400' : 'green.400'}
+                    ensureNumber(data?.light_lux || 0) < 2000 ? 'red.400' : 'green.400'}
                   height="100%"
                 >
                   <Flex align="center" mb={4}>
                     <Box
                       bg={ensureNumber(data?.light_lux || 0) > 10000 ? 'red.100' : 
-                        ensureNumber(data?.light_lux || 0) < 2000 ? 'blue.100' : 'green.100'}
+                        ensureNumber(data?.light_lux || 0) < 2000 ? 'red.100' : 'green.100'}
                       p={4}
                       borderRadius="lg"
                       mr={4}
@@ -925,7 +993,7 @@ const Dashboard: React.FC = () => {
                       {icons.light({ 
                         boxSize: 10,
                         color: ensureNumber(data?.light_lux || 0) > 10000 ? 'red.500' : 
-                          ensureNumber(data?.light_lux || 0) < 2000 ? 'blue.500' : 'green.500'
+                          ensureNumber(data?.light_lux || 0) < 2000 ? 'red.500' : 'green.500'
                       })}
                     </Box>
                     <Box>
@@ -934,7 +1002,7 @@ const Dashboard: React.FC = () => {
                         fontSize="3xl" 
                         fontWeight="bold"
                         color={ensureNumber(data?.light_lux || 0) > 10000 ? 'red.500' : 
-                          ensureNumber(data?.light_lux || 0) < 2000 ? 'blue.500' : 'green.500'}
+                          ensureNumber(data?.light_lux || 0) < 2000 ? 'red.500' : 'green.500'}
                       >
                         {ensureNumber(data?.light_lux || 0).toFixed(0)} lux
                       </Text>
@@ -943,68 +1011,6 @@ const Dashboard: React.FC = () => {
                   
                   <Text fontSize="sm" color="gray.500" mt={2} textAlign="left">
                     Ideal range: <Badge colorScheme="green">2000-10000 lux</Badge>
-                  </Text>
-                </Box>
-              </Box>
-            )}
-        
-            {/* Status Card */}
-            {loading ? (
-              <CardSkeleton />
-            ) : (
-              <Box
-                _hover={{ transform: 'translateY(-5px)', boxShadow: 'lg' }}
-                _active={{ transform: 'scale(0.98)' }}
-              >
-                <Box
-                  bg="white"
-                  p={6}
-                  borderRadius="xl"
-                  boxShadow="md"
-                  borderLeftWidth="4px"
-                  borderLeftColor={data?.prediction === 'Normal' ? 'green.400' : 
-                    data?.prediction === 'Warning' ? 'orange.400' : 'red.400'}
-                  height="100%"
-                >
-                  <Flex align="center" mb={4}>
-                    <Box
-                      bg={data?.prediction === 'Normal' ? 'green.100' : 
-                        data?.prediction === 'Warning' ? 'orange.100' : 'red.100'}
-                      p={4}
-                      borderRadius="lg"
-                      mr={4}
-                      display="flex"
-                      alignItems="center"
-                      justifyContent="center"
-                    >
-                      {data?.prediction === 'Normal' ? icons.checkCircle({ 
-                        boxSize: 10,
-                        color: 'green.500'
-                      }) : data?.prediction === 'Warning' ? icons.alertTriangle({
-                        boxSize: 10,
-                        color: 'orange.500'
-                      }) : icons.alertCircle({
-                        boxSize: 10,
-                        color: 'red.500'
-                      })}
-                    </Box>
-                    <Box>
-                      <Text fontWeight="bold" fontSize="lg" color="gray.600" textAlign="left">Status</Text>
-                      <Text 
-                        fontSize="3xl" 
-                        fontWeight="bold"
-                        color={data?.prediction === 'Normal' ? 'green.500' : 
-                          data?.prediction === 'Warning' ? 'orange.500' : 'red.500'}
-                      >
-                        {data?.prediction || 'Normal'}
-                      </Text>
-                    </Box>
-                  </Flex>
-                  
-                  <Text fontSize="sm" color="gray.500" mt={2} textAlign="left">
-                    {data?.prediction === 'Normal' ? 'All parameters in safe range' : 
-                    data?.prediction === 'Warning' ? 'Some parameters near thresholds' : 
-                    data?.prediction === 'Alert' ? 'Immediate action required!' : 'Loading...'}
                   </Text>
                 </Box>
               </Box>
@@ -1067,42 +1073,69 @@ const Dashboard: React.FC = () => {
         <Box
           bg="white"
           borderRadius="xl"
-          p={6}
+          p={{ base: 4, md: 6 }}
           boxShadow="md"
           mb={8}
           borderWidth="1px"
           borderColor="gray.200"
+          overflowX="auto"
         >
-          <Flex justify="space-between" align="center" mb={5}>
-            <Heading as="h2" size="md" color="blue.500" display="flex" alignItems="center">
-              <Box mr={2}>{icons.barChart({ boxSize: 5 })}</Box> Historical Data
+          <Flex 
+            justify="space-between" 
+            align="center" 
+            mb={5}
+            direction={{ base: "column", md: "row" }}
+            gap={{ base: 4, md: 0 }}
+          >
+            <Heading as="h2" size={{ base: "sm", md: "md" }} color="blue.500" display="flex" alignItems="center">
+              <Box mr={2}>{icons.barChart({ boxSize: { base: 4, md: 5 } })}</Box> Historical Data
             </Heading>
             
-            <Stack direction="row" gap={3} align="center">
-              <Text color="gray.600" fontWeight="medium">Time Range:</Text>
-              <select
-                value={selectedRange}
-                onChange={handleRangeChange}
-                style={{
-                  backgroundColor: "#f7fafc",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "0.375rem",
-                  padding: "0.5rem",
-                  fontSize: "0.875rem",
-                  outline: "none",
-                  width: "auto"
-                }}
+            <Stack 
+              direction={{ base: "column", sm: "row" }} 
+              gap={{ base: 3, md: 4 }} 
+              align="center"
+              width={{ base: "100%", md: "auto" }}
+              flexWrap={{ base: "wrap", md: "nowrap" }}
+            >
+              <Flex 
+                align="center" 
+                gap={2}
+                minWidth={{ base: "100%", sm: "auto" }}
+                flexShrink={0}
               >
-                {timeRangeOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                <Text color="gray.600" fontWeight="medium" fontSize={{ base: "sm", md: "md" }} whiteSpace="nowrap">Time Range:</Text>
+                <select
+                  value={selectedRange}
+                  onChange={handleRangeChange}
+                  style={{
+                    backgroundColor: "#f7fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "0.375rem",
+                    padding: "0.5rem",
+                    fontSize: "0.875rem",
+                    outline: "none",
+                    width: "100%",
+                    maxWidth: "200px",
+                    minWidth: "150px"
+                  }}
+                >
+                  {timeRangeOptions.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </Flex>
               
               {/* Auto Refresh Switch */}
-              <Flex align="center" gap={2}>
-                <Text fontSize="sm" color="gray.600">Auto Refresh:</Text>
+              <Flex 
+                align="center" 
+                gap={2} 
+                minWidth={{ base: "100%", sm: "auto" }}
+                flexShrink={0}
+              >
+                <Text fontSize={{ base: "xs", md: "sm" }} color="gray.600" whiteSpace="nowrap">Auto Refresh:</Text>
                 <Box
                   as="button"
                   onClick={toggleAutoRefresh}
@@ -1113,6 +1146,7 @@ const Dashboard: React.FC = () => {
                   position="relative"
                   transition="all 0.2s"
                   _hover={{ opacity: 0.8 }}
+                  flexShrink={0}
                 >
                   <Box
                     position="absolute"
@@ -1133,20 +1167,22 @@ const Dashboard: React.FC = () => {
                   setHistoryLoading(true);
                   fetchHistoricalData();
                 }} 
-                size="sm" 
+                size={{ base: "sm", md: "md" }}
                 colorScheme="blue"
                 disabled={historyLoading}
+                minWidth={{ base: "100%", sm: "auto" }}
+                flexShrink={0}
               >
                 {historyLoading ? (
-                  <Flex align="center">
+                  <Flex align="center" justify="center" width="100%">
                     <Spinner size="xs" mr={2} />
                     Updating...
                   </Flex>
                 ) : (
-                  <Box as="span" display="flex" alignItems="center">
-                    {icons.refresh({ boxSize: 4, mr: 2 })}
+                  <Flex as="span" alignItems="center" justify="center" width="100%">
+                    {icons.refresh({ boxSize: { base: 3, md: 4 }, mr: 2 })}
                     Refresh
-                  </Box>
+                  </Flex>
                 )}
               </Button>
             </Stack>
@@ -1159,7 +1195,9 @@ const Dashboard: React.FC = () => {
               borderRadius="md"
               colorScheme="blue"
               variant="subtle"
-              fontSize="sm"
+              fontSize={{ base: "xs", md: "sm" }}
+              display="block"
+              textAlign={{ base: "center", md: "left" }}
             >
               {getDateRangeText()} ({historicalData.length} data points shown)
             </Badge>
@@ -1178,28 +1216,61 @@ const Dashboard: React.FC = () => {
           ) : (
             <>
               {/* Custom Tabs Implementation */}
-              <Flex borderBottom="1px solid" borderColor="gray.200" mb={4}>
+              <Flex 
+                borderBottom="1px solid" 
+                borderColor="gray.200" 
+                mb={4}
+                overflowX="auto"
+                css={{
+                  '&::-webkit-scrollbar': {
+                    height: '4px',
+                  },
+                  '&::-webkit-scrollbar-track': {
+                    background: '#f1f1f1',
+                  },
+                  '&::-webkit-scrollbar-thumb': {
+                    background: '#888',
+                    borderRadius: '4px',
+                  },
+                }}
+              >
                 <Box 
                   className={`custom-tab ${activeTab === 0 ? 'active' : ''}`}
                   onClick={() => setActiveTab(0)}
+                  minWidth="120px"
+                  textAlign="center"
                 >
                   Temperature
                 </Box>
                 <Box 
                   className={`custom-tab ${activeTab === 1 ? 'active' : ''}`}
                   onClick={() => setActiveTab(1)}
+                  minWidth="120px"
+                  textAlign="center"
                 >
-                  Humidity
+                  Air Humidity
                 </Box>
                 <Box 
                   className={`custom-tab ${activeTab === 2 ? 'active' : ''}`}
                   onClick={() => setActiveTab(2)}
+                  minWidth="120px"
+                  textAlign="center"
                 >
-                  CO₂ Level
+                  Soil Humidity
                 </Box>
                 <Box 
                   className={`custom-tab ${activeTab === 3 ? 'active' : ''}`}
                   onClick={() => setActiveTab(3)}
+                  minWidth="120px"
+                  textAlign="center"
+                >
+                  CO₂ Level
+                </Box>
+                <Box 
+                  className={`custom-tab ${activeTab === 4 ? 'active' : ''}`}
+                  onClick={() => setActiveTab(4)}
+                  minWidth="120px"
+                  textAlign="center"
                 >
                   Light Level
                 </Box>
@@ -1226,12 +1297,12 @@ const Dashboard: React.FC = () => {
               
               <Box display={activeTab === 1 ? 'block' : 'none'}>
                 <ChakraLineChart 
-                  key={`humidity-chart-${selectedRange}-${historicalData.length}`}
+                  key={`air-humidity-chart-${selectedRange}-${historicalData.length}`}
                   data={historicalData} 
                   xAxisKey="timestamp" 
-                  yAxisKeys={[{ key: 'humidity', color: '#3182CE', name: 'Humidity (%)' }]}
+                  yAxisKeys={[{ key: 'humidity', color: '#3182CE', name: 'Air Humidity (%)' }]}
                   height={400}
-                  title="Humidity Trend"
+                  title="Air Humidity Trend"
                   isLoading={historyLoading}
                   referencePoints={[
                     { y: 65, label: 'Max Ideal (65%)', color: '#2d5ee6ba', strokeDasharray: '5 5' },
@@ -1243,6 +1314,24 @@ const Dashboard: React.FC = () => {
               </Box>
               
               <Box display={activeTab === 2 ? 'block' : 'none'}>
+                <ChakraLineChart 
+                  key={`soil-humidity-chart-${selectedRange}-${historicalData.length}`}
+                  data={historicalData} 
+                  xAxisKey="timestamp" 
+                  yAxisKeys={[{ key: 'soil_humidity', color: '#3182CE', name: 'Soil Humidity (%)' }]}
+                  height={400}
+                  title="Soil Humidity Trend"
+                  isLoading={historyLoading}
+                  referencePoints={[
+                    { y: 65, label: 'Max Ideal (65%)', color: '#2d5ee6ba', strokeDasharray: '5 5' },
+                    { y: 50, label: 'Min Ideal (50%)', color: '#e62d2dba', strokeDasharray: '5 5' },
+                    { y: 45, label: 'Optimal (45%)', color: '#48e62dba' }
+                  ]}
+                  formatXAxis={formatChartTimestamp}
+                />
+              </Box>
+              
+              <Box display={activeTab === 3 ? 'block' : 'none'}>
                 <ChakraLineChart 
                   key={`co2-chart-${selectedRange}-${historicalData.length}`}
                   data={historicalData} 
@@ -1260,7 +1349,7 @@ const Dashboard: React.FC = () => {
                 />
               </Box>
               
-              <Box display={activeTab === 3 ? 'block' : 'none'}>
+              <Box display={activeTab === 4 ? 'block' : 'none'}>
                 <ChakraLineChart 
                   key={`light-chart-${selectedRange}-${historicalData.length}`}
                   data={historicalData} 
