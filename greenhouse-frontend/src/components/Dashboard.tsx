@@ -121,7 +121,14 @@ const icons = {
         <path d="M12,2A10,10,0,1,0,22,12,10,10,0,0,0,12,2ZM8,13.5A1.5,1.5,0,1,1,9.5,12,1.5,1.5,0,0,1,8,13.5ZM9,9H6V7h3Zm3,1.5A1.5,1.5,0,1,1,13.5,9,1.5,1.5,0,0,1,12,10.5Zm3,3A1.5,1.5,0,1,1,16.5,12,1.5,1.5,0,0,1,15,13.5Zm0-4.5H15V7h3v2H15Z" />
       </svg>
     </CustomIcon>
-  )
+  ),
+  light: (props: any) => (
+    <CustomIcon {...props}>
+      <svg viewBox="0 0 24 24" width="2.5em" height="2.5em" fill="currentColor" strokeWidth="0.4">
+        <path d="M12,2A1,1,0,0,0,11,3V5a1,1,0,0,0,2,0V3A1,1,0,0,0,12,2ZM4.93,4.93A1,1,0,0,0,3.51,6.34L4.93,7.76A1,1,0,0,0,6.34,6.34ZM2,11a1,1,0,0,0,1,1H5a1,1,0,0,0,0-2H3A1,1,0,0,0,2,11ZM7.76,4.93,6.34,3.51A1,1,0,0,0,4.93,4.93L6.34,6.34A1,1,0,0,0,7.76,4.93ZM12,19a1,1,0,0,0-1,1v2a1,1,0,0,0,2,0V20A1,1,0,0,0,12,19ZM17.66,17.66a1,1,0,0,0-1.41,0,1,1,0,0,0,0,1.41l1.41,1.41a1,1,0,0,0,1.41-1.41ZM19,11a1,1,0,0,0,1-1V8a1,1,0,0,0-2,0v2A1,1,0,0,0,19,11ZM17.66,6.34a1,1,0,0,0,0-1.41L16.24,3.51a1,1,0,0,0-1.41,1.41L16.24,6.34A1,1,0,0,0,17.66,6.34ZM12,6a6,6,0,1,0,6,6A6,6,0,0,0,12,6Zm0,10a4,4,0,1,1,4-4A4,4,0,0,1,12,16Z" />
+      </svg>
+    </CustomIcon>
+  ),
 };
 
 interface SensorData {
@@ -131,6 +138,7 @@ interface SensorData {
   air_humidity?: number | string;    
   soil_humidity?: number | string; 
   co2_level?: number | string; 
+  light_lux?: number | string;
   prediction: 'Normal' | 'Alert' | 'Warning';
   timestamp: string;
   _source?: string;
@@ -237,17 +245,20 @@ const Dashboard: React.FC = () => {
           temperature: item.temperature || 0,
           humidity: item.air_humidity || 0,
           co2_level: item.co2_level || 0,
+          light_lux: item.light_lux || 0,
           prediction: 'Normal',
           timestamp: timestamp
         };
         
         if (ensureNumber(processed.temperature) > 28 || 
             ensureNumber(processed.humidity) > 70 || 
-            ensureNumber(processed.co2_level as number | string) > 1000) {
+            ensureNumber(processed.co2_level as number | string) > 1000 ||
+            ensureNumber(processed.light_lux as number | string) > 10000) {
           processed.prediction = 'Alert';
         } else if (ensureNumber(processed.temperature) > 25 || 
                   ensureNumber(processed.humidity) > 65 || 
-                  ensureNumber(processed.co2_level as number | string) > 900) {
+                  ensureNumber(processed.co2_level as number | string) > 900 ||
+                  ensureNumber(processed.light_lux as number | string) > 8000) {
           processed.prediction = 'Warning';
         }
         
@@ -334,18 +345,21 @@ const Dashboard: React.FC = () => {
         temperature: sensorData.temperature,
         humidity: sensorData.air_humidity,
         co2_level: sensorData.co2_level || 0,
+        light_lux: sensorData.light_lux || 0,
         prediction: 'Normal',
         timestamp: sensorData.timestamp
       };
       
-      // Set prediction based on temperature, humidity and CO2 values
+      // Set prediction based on all values
       if (ensureNumber(cleanedData.temperature) > 28 || 
           ensureNumber(cleanedData.humidity) > 70 || 
-          ensureNumber(cleanedData.co2_level as number | string) > 1000) {
+          ensureNumber(cleanedData.co2_level as number | string) > 1000 ||
+          ensureNumber(cleanedData.light_lux as number | string) > 10000) {
         cleanedData.prediction = 'Alert';
       } else if (ensureNumber(cleanedData.temperature) > 25 || 
                 ensureNumber(cleanedData.humidity) > 65 || 
-                ensureNumber(cleanedData.co2_level as number | string) > 900) {
+                ensureNumber(cleanedData.co2_level as number | string) > 900 ||
+                ensureNumber(cleanedData.light_lux as number | string) > 8000) {
         cleanedData.prediction = 'Warning';
       }
       
@@ -712,7 +726,7 @@ const Dashboard: React.FC = () => {
             </Heading>
           </Flex>
       
-          <SimpleGrid columns={{ base: 1, md: 4 }} gap={6} mb={6}>
+          <SimpleGrid columns={{ base: 1, md: 5 }} gap={6} mb={6}>
             {/* Temperature Card */}
             {loading ? (
               <CardSkeleton />
@@ -874,6 +888,61 @@ const Dashboard: React.FC = () => {
                   
                   <Text fontSize="sm" color="gray.500" mt={2} textAlign="left">
                     Ideal range: <Badge colorScheme="green">400-1000 ppm</Badge>
+                  </Text>
+                </Box>
+              </Box>
+            )}
+        
+            {/* Light Level Card */}
+            {loading ? (
+              <CardSkeleton />
+            ) : (
+              <Box
+                _hover={{ transform: 'translateY(-5px)', boxShadow: 'lg' }}
+                _active={{ transform: 'scale(0.98)' }}
+              >
+                <Box
+                  bg="white"
+                  p={6}
+                  borderRadius="xl"
+                  boxShadow="md"
+                  borderLeftWidth="4px"
+                  borderLeftColor={ensureNumber(data?.light_lux || 0) > 10000 ? 'red.400' : 
+                    ensureNumber(data?.light_lux || 0) < 2000 ? 'blue.400' : 'green.400'}
+                  height="100%"
+                >
+                  <Flex align="center" mb={4}>
+                    <Box
+                      bg={ensureNumber(data?.light_lux || 0) > 10000 ? 'red.100' : 
+                        ensureNumber(data?.light_lux || 0) < 2000 ? 'blue.100' : 'green.100'}
+                      p={4}
+                      borderRadius="lg"
+                      mr={4}
+                      display="flex"
+                      alignItems="center"
+                      justifyContent="center"
+                    >
+                      {icons.light({ 
+                        boxSize: 10,
+                        color: ensureNumber(data?.light_lux || 0) > 10000 ? 'red.500' : 
+                          ensureNumber(data?.light_lux || 0) < 2000 ? 'blue.500' : 'green.500'
+                      })}
+                    </Box>
+                    <Box>
+                      <Text fontWeight="bold" fontSize="lg" color="gray.600">Light Level</Text>
+                      <Text 
+                        fontSize="3xl" 
+                        fontWeight="bold"
+                        color={ensureNumber(data?.light_lux || 0) > 10000 ? 'red.500' : 
+                          ensureNumber(data?.light_lux || 0) < 2000 ? 'blue.500' : 'green.500'}
+                      >
+                        {ensureNumber(data?.light_lux || 0).toFixed(0)} lux
+                      </Text>
+                    </Box>
+                  </Flex>
+                  
+                  <Text fontSize="sm" color="gray.500" mt={2} textAlign="left">
+                    Ideal range: <Badge colorScheme="green">2000-10000 lux</Badge>
                   </Text>
                 </Box>
               </Box>
@@ -1128,6 +1197,12 @@ const Dashboard: React.FC = () => {
                 >
                   CO₂ Level
                 </Box>
+                <Box 
+                  className={`custom-tab ${activeTab === 3 ? 'active' : ''}`}
+                  onClick={() => setActiveTab(3)}
+                >
+                  Light Level
+                </Box>
               </Flex>
               
               {/* Tab Panels */}
@@ -1180,6 +1255,24 @@ const Dashboard: React.FC = () => {
                     { y: 1000, label: 'Max Ideal (1000 ppm)', color: '#2d5ee6ba', strokeDasharray: '5 5' },
                     { y: 400, label: 'Min Ideal (400 ppm)', color: '#e62d2dba', strokeDasharray: '5 5' },
                     { y: 900, label: 'Optimal (900 ppm)', color: '#48e62dba' }
+                  ]}
+                  formatXAxis={formatChartTimestamp}
+                />
+              </Box>
+              
+              <Box display={activeTab === 3 ? 'block' : 'none'}>
+                <ChakraLineChart 
+                  key={`light-chart-${selectedRange}-${historicalData.length}`}
+                  data={historicalData} 
+                  xAxisKey="timestamp" 
+                  yAxisKeys={[{ key: 'light_lux', color: '#FFD700', name: 'Light Level (lux)' }]}
+                  height={400}
+                  title="Light Level Trend"
+                  isLoading={historyLoading}
+                  referencePoints={[
+                    { y: 10000, label: 'Max Ideal (10000 lux)', color: '#2d5ee6ba', strokeDasharray: '5 5' },
+                    { y: 2000, label: 'Min Ideal (2000 lux)', color: '#e62d2dba', strokeDasharray: '5 5' },
+                    { y: 8000, label: 'Optimal (8000 lux)', color: '#48e62dba' }
                   ]}
                   formatXAxis={formatChartTimestamp}
                 />
