@@ -370,10 +370,11 @@ const Devices: React.FC<{}> = () => {
           devices.map((d) => {
             if (d.id === id && d.isInteractive) {
               const actuatorDevice = d as ActuatorDevice;
+              const revertedIsOn = !actuatorDevice.isOn;
               return {
                 ...actuatorDevice,
-                isOn: !actuatorDevice.isOn, // Toggle back
-                status: actuatorDevice.isOn ? "Active" : "Inactive",
+                isOn: revertedIsOn,
+                status: revertedIsOn ? "Active" : "Inactive",
               };
             }
             return d;

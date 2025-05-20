@@ -6,6 +6,8 @@ export interface PredictionData {
   predicted_temp: number;
   predicted_air_humidity: number;
   predicted_soil_humidity: number;
+  predicted_co2_level: number;
+  predicted_light_lux: number;
   timestamp: string;
   created_at?: string;
 }
@@ -22,6 +24,8 @@ class PredictionModel {
           predicted_temp DECIMAL(5,2) NOT NULL,
           predicted_air_humidity DECIMAL(5,2) NOT NULL,
           predicted_soil_humidity DECIMAL(5,2) NOT NULL,
+          predicted_co2_level DECIMAL(5,2) NOT NULL,
+          predicted_light_lux DECIMAL(5,2) NOT NULL,
           timestamp TIMESTAMP NOT NULL,
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           INDEX idx_timestamp (timestamp),
@@ -66,50 +70,91 @@ class PredictionModel {
   }
 
   /**
-   * Generate and save prediction data
+   * Get the most recent actual sensor data to base predictions on
+   * or handle the case if the table doesn't exist
    */
-  async generatePredictions(): Promise<number> {
-    
+  async ensureSensorTableAndGetLatest() {
     try {
-      // Ensure table exists first
-      await this.ensureTableExists();
+      // Check if sensor_data table exists
+      const [tables] = await pool.query(`
+        SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema = DATABASE() AND table_name = 'sensor_data'
+      `);
+
+      // If sensor_data table doesn't exist, create it with all necessary columns
+      if (!(tables as any[]).length) {
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS sensor_data (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            temperature DECIMAL(5,2) NOT NULL,
+            air_humidity DECIMAL(5,2) NOT NULL, -- Assuming 'humidity' in old schema meant air_humidity
+            soil_humidity DECIMAL(5,2) NOT NULL,
+            co2_level DECIMAL(5,2) NOT NULL,
+            light_lux DECIMAL(5,2) NOT NULL,
+            prediction ENUM('Normal', 'Warning', 'Alert') DEFAULT 'Normal',
+            timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_timestamp (timestamp)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+        
+      }
       
-      // First, clear existing predictions for future timestamps
-      await this.clearFuturePredictions();
-      
-      // Get the most recent actual sensor data to base predictions on
-      const [latestSensorData] = await pool.query(
-        `SELECT id, temperature, humidity, prediction 
+      // Get the most recent sensor data, including all new fields
+      const [latestSensorDataRows] = await pool.query(
+        `SELECT id, temperature, air_humidity, soil_humidity, co2_level, light_lux, prediction 
          FROM sensor_data 
          ORDER BY timestamp DESC 
          LIMIT 1`
       );
       
-      if (!(latestSensorData as any[]).length) {
-        // Use default values if no sensor data is available
-        return this.generatePredictionsWithDefaults();
+      return latestSensorDataRows as any[]; // Will be an array, potentially empty or with one row
+    } catch (error) {
+      console.error('Error ensuring/fetching from sensor_data table:', error);
+      return []; // Return empty array on error, to be handled by caller
+    }
+  }
+
+  /**
+   * Generate and save prediction data
+   */
+  async generatePredictions(): Promise<number> {
+    
+    try {
+      await this.ensureTableExists();
+      
+      const latestSensorDataRows = await this.ensureSensorTableAndGetLatest();
+      
+      let baseTemp = 23.5; // Default if no sensor data
+      let baseAirHumidity = 55.0; // Default
+      let baseSoilHumidity = 48.0; // Default
+      let baseCO2Level = 800.0; // Default
+      let baseLightLux = 1000.0; // Default
+
+      if (latestSensorDataRows && latestSensorDataRows.length > 0) {
+        const sensorData = latestSensorDataRows[0];
+        baseTemp = parseFloat(sensorData.temperature) || baseTemp;
+        baseAirHumidity = parseFloat(sensorData.air_humidity) || baseAirHumidity;
+        baseSoilHumidity = parseFloat(sensorData.soil_humidity) || baseSoilHumidity;
+        baseCO2Level = parseFloat(sensorData.co2_level) || baseCO2Level;
+        baseLightLux = parseFloat(sensorData.light_lux) || baseLightLux;
+      } else {
+        // No actual sensor data, so we will use the defaults defined above
+        // and the calculatePredictionPoint will rely on its internal logic if any base is still missing
+        // (though we now provide all 5 defaults here).
+        console.warn("No actual sensor data found. Generating predictions using default base values.");
       }
       
-      const sensorData = (latestSensorData as any[])[0];
-      const baseTemp = parseFloat(sensorData.temperature) || 24.0;
-      const baseAirHumidity = parseFloat(sensorData.humidity) || 55.0;
-      const baseSoilHumidity = 50.0; // Starting base for soil humidity (if not in actual data)
-      
-      
-      // Get current time and normalize to remove seconds and milliseconds
-      // This ensures cleaner time intervals and better chart display
+      await this.clearFuturePredictions();
+            
       const now = new Date();
-      now.setSeconds(0, 0); // Reset seconds and milliseconds to zero
+      now.setSeconds(0, 0);
       
       const batch: PredictionData[] = [];
       
-      // Add the current time data point first - this is crucial!
-      // This represents the current condition prediction (right now)
       const currentPrediction = this.calculatePredictionPoint(
-        baseTemp, baseAirHumidity, baseSoilHumidity,
-        now, 0, // 0 hour offset because this is now
-        0.1, // Minimal variation for current prediction
-        0.1  // Minimal trend impact for current prediction
+        baseTemp, baseAirHumidity, baseSoilHumidity, baseCO2Level, baseLightLux,
+        now, 0, 0.1, 0.1
       );
       
       batch.push({
@@ -117,61 +162,54 @@ class PredictionModel {
         timestamp: now.toISOString().slice(0, 19).replace('T', ' ')
       });
       
-      // Generate 12 hours of predictions at 15-minute intervals (short-term, high resolution)
       const shortTermHours = 12;
-      const shortTermIntervals = shortTermHours * 4; // 15-minute intervals
+      const shortTermIntervals = shortTermHours * 4;
       
-      for (let i = 1; i <= shortTermIntervals; i++) { // Start from 1 since we added current time already
+      for (let i = 1; i <= shortTermIntervals; i++) {
         const timestamp = new Date(now);
-        const minutesOffset = i * 15; // 15-minute intervals
+        const minutesOffset = i * 15;
         timestamp.setMinutes(timestamp.getMinutes() + minutesOffset);
-        
-        // More precise predictions for the short term
         const hourOffset = minutesOffset / 60;
         const predictionPoint = this.calculatePredictionPoint(
-          baseTemp, baseAirHumidity, baseSoilHumidity, 
-          timestamp, hourOffset, 
-          0.2, // Lower random variation for short-term
-          1.5  // Lower multi-day trend impact
+          baseTemp, baseAirHumidity, baseSoilHumidity, baseCO2Level, baseLightLux,
+          timestamp, hourOffset, 0.2, 1.5
         );
-        
         batch.push({
           ...predictionPoint,
           timestamp: timestamp.toISOString().slice(0, 19).replace('T', ' ')
         });
       }
       
-      // Generate 30 days of predictions at hourly intervals (medium-term)
-      const mediumTermDays = 30; // Full month
-      const mediumTermIntervals = mediumTermDays * 24; // 1-hour intervals
-      
+      const mediumTermDays = 30;
+      const mediumTermIntervals = mediumTermDays * 24;
       const lastShortTermTime = new Date(now);
       lastShortTermTime.setMinutes(lastShortTermTime.getMinutes() + (shortTermIntervals * 15));
       
       for (let i = 0; i < mediumTermIntervals; i++) {
         const timestamp = new Date(lastShortTermTime);
-        timestamp.setHours(timestamp.getHours() + i); // 1 hour intervals
-        
-        // Standard predictions for medium term
+        timestamp.setHours(timestamp.getHours() + i);
         const hourOffset = shortTermHours + i;
         const predictionPoint = this.calculatePredictionPoint(
-          baseTemp, baseAirHumidity, baseSoilHumidity, 
-          timestamp, hourOffset, 
-          0.5, // Medium random variation
-          3.0  // Standard multi-day trend impact
+          baseTemp, baseAirHumidity, baseSoilHumidity, baseCO2Level, baseLightLux,
+          timestamp, hourOffset, 0.5, 3.0
         );
-        
         batch.push({
           ...predictionPoint,
           timestamp: timestamp.toISOString().slice(0, 19).replace('T', ' ')
         });
       }
       
-      // Save the batch of predictions
       return await this.savePredictionBatch(batch);
     } catch (error) {
       console.error('Error generating predictions:', error);
-      throw new Error(`Failed to generate predictions: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // Attempt to generate with defaults as a fallback if the primary generation fails
+      try {
+        console.warn("Primary prediction generation failed. Attempting to generate with defaults.");
+        return await this.generatePredictionsWithDefaults();
+      } catch (defaultGenError) {
+        console.error('Error generating predictions with defaults after primary failure:', defaultGenError);
+        throw new Error(`Failed to generate predictions: ${error instanceof Error ? error.message : 'Unknown error'}. Default generation also failed: ${defaultGenError instanceof Error ? defaultGenError.message : 'Unknown error'}`);
+      }
     }
   }
 
@@ -182,150 +220,157 @@ class PredictionModel {
     baseTemp: number, 
     baseAirHumidity: number, 
     baseSoilHumidity: number,
+    baseCO2Level: number,
+    baseLightLux: number,
     timestamp: Date,
     hourOffset: number,
     randomFactor: number = 0.5,
     trendImpact: number = 3.0
-  ): { predicted_temp: number; predicted_air_humidity: number; predicted_soil_humidity: number } {
-    // Hour of the day (0-23)
+  ): { predicted_temp: number; predicted_air_humidity: number; predicted_soil_humidity: number; predicted_co2_level: number; predicted_light_lux: number } {
     const hourOfDay = timestamp.getHours();
-    
-    // Day of year (0-364)
     const dayOfYear = Math.floor(
       (timestamp.getTime() - new Date(timestamp.getFullYear(), 0, 0).getTime()) / 
       (24 * 60 * 60 * 1000)
     );
-    
-    // Day/night cycle - peaks at 14:00 (2pm), lowest at 2:00 (2am)
-    // Using a shifted cosine wave for more realistic temperature pattern
     const dayNightCycle = Math.cos(((hourOfDay - 14) / 24) * 2 * Math.PI);
-    
-    // Seasonal variation - small impact over months
     const seasonalFactor = Math.sin((dayOfYear / 365) * 2 * Math.PI) * 0.3;
-    
-    // Multi-day weather pattern (3-day cycle)
     const dayNumber = Math.floor(hourOffset / 24);
     const weatherPatternCycle = Math.sin((dayNumber / 3) * Math.PI) * 0.7;
-    
-    // Weather pattern transition (smoother changes between pattern cycles)
     const patternTransition = Math.sin((hourOffset / 72) * Math.PI) * trendImpact;
     
-    // Small random variations for natural feel
     const tempVariation = ((Math.random() * 2) - 1) * (0.2 * randomFactor);
     const airHumidityVariation = ((Math.random() * 2) - 1) * (0.4 * randomFactor);
     const soilHumidityVariation = ((Math.random() * 2) - 1) * (0.2 * randomFactor);
+    const co2Variation = ((Math.random() * 2) - 1) * (0.3 * randomFactor);
+    const lightLuxVariation = ((Math.random() * 2) - 1) * (0.5 * randomFactor);
     
-    // Calculate predicted values with realistic factors
+    let predictedTemp = Number(baseTemp) +
+                      (dayNightCycle * 2.5) +
+                      (seasonalFactor * 0.5) +
+                      (weatherPatternCycle * 0.8) +
+                      (patternTransition * 0.4) +
+                      tempVariation;
     
-    // Temperature (°C) - Main factors: day/night cycle, weather patterns
-    // Within a greenhouse, temperature typically has a ~5°C day/night difference
-    // but remains more controlled than outdoor environments
-    let predictedTemp = Number(baseTemp) + 
-                      (dayNightCycle * 2.5) +    // Day/night (±2.5°C)
-                      (seasonalFactor * 0.5) +   // Seasonal (±0.15°C)
-                      (weatherPatternCycle * 0.8) + // Weather patterns (±0.56°C)
-                      (patternTransition * 0.4) +   // Trend impact (±1.2°C max)
-                      tempVariation;              // Random (±0.1°C)
+    let predictedAirHumidity = Number(baseAirHumidity) +
+                             (dayNightCycle * -4.0) +
+                             (seasonalFactor * 1.0) +
+                             (weatherPatternCycle * 2.0) +
+                             (patternTransition * -0.7) +
+                             airHumidityVariation;
     
-    // Air humidity (%) - Typically inverse to temperature during the day
-    // When temperature rises, relative humidity falls (and vice versa)
-    let predictedAirHumidity = Number(baseAirHumidity) + 
-                             (dayNightCycle * -4.0) +    // Inverse to temp (±4%)
-                             (seasonalFactor * 1.0) +    // Seasonal (±0.3%)
-                             (weatherPatternCycle * 2.0) + // Weather (±1.4%)
-                             (patternTransition * -0.7) +  // Trend impact (±2.1% max)
-                             airHumidityVariation;       // Random (±0.2%)
+    let predictedSoilHumidity = Number(baseSoilHumidity) +
+                              (dayNightCycle * -0.8) +
+                              (seasonalFactor * 0.7) +
+                              (weatherPatternCycle * 1.2) +
+                              (patternTransition * -0.5) +
+                              soilHumidityVariation;
     
-    // Soil humidity (%) - Changes more slowly than air humidity
-    // Typically fluctuates less and has smaller daily variations
-    let predictedSoilHumidity = Number(baseSoilHumidity) + 
-                              (dayNightCycle * -0.8) +    // Small day effect (±0.8%)
-                              (seasonalFactor * 0.7) +    // Seasonal (±0.21%)
-                              (weatherPatternCycle * 1.2) + // Weather (±0.84%)
-                              (patternTransition * -0.5) +  // Trend impact (±1.5% max)
-                              soilHumidityVariation;     // Random (±0.1%)
+    let predictedCO2Level = Number(baseCO2Level) + 
+                          (dayNightCycle * -100) +
+                          (seasonalFactor * 20) +
+                          (weatherPatternCycle * 30) +
+                          (patternTransition * 15) +
+                          co2Variation * 50;
     
-    // Ensure values are within realistic greenhouse ranges
-    // Temperature typically: 18-30°C
+    let predictedLightLux;
+    if (hourOfDay >= 22 || hourOfDay < 5) {
+      predictedLightLux = 25 + (lightLuxVariation * 10);
+    } else if (hourOfDay >= 5 && hourOfDay < 8) {
+      const dawnProgress = (hourOfDay - 5) / 3;
+      predictedLightLux = 25 + (dawnProgress * (Number(baseLightLux) * 0.8)) + (seasonalFactor * 50) + (lightLuxVariation * 30);
+    } else if (hourOfDay >= 8 && hourOfDay < 17) {
+      const midday = 12.5;
+      const hoursFromMidday = Math.abs(hourOfDay - midday);
+      const middayFactor = 1 - (hoursFromMidday / 4.5) * 0.3;
+      predictedLightLux = Number(baseLightLux) * middayFactor +
+                         (seasonalFactor * 100) +
+                         (weatherPatternCycle * 150) +
+                         (lightLuxVariation * 50);
+    } else {
+      const duskProgress = (hourOfDay - 17) / 5;
+      const duskFactor = 1 - duskProgress;
+      predictedLightLux = 25 + (duskFactor * (Number(baseLightLux) * 0.8)) + (seasonalFactor * 50) + (lightLuxVariation * 30);
+    }
+    
     predictedTemp = Math.max(18, Math.min(30, predictedTemp));
-    
-    // Humidity typically: 40-80%
     predictedAirHumidity = Math.max(40, Math.min(80, predictedAirHumidity));
     predictedSoilHumidity = Math.max(35, Math.min(70, predictedSoilHumidity));
+    predictedCO2Level = Math.max(400, Math.min(1500, predictedCO2Level));
+    predictedLightLux = Math.max(0, Math.min(2000, predictedLightLux));
     
     return {
       predicted_temp: parseFloat(predictedTemp.toFixed(1)),
       predicted_air_humidity: parseFloat(predictedAirHumidity.toFixed(1)),
-      predicted_soil_humidity: parseFloat(predictedSoilHumidity.toFixed(1))
+      predicted_soil_humidity: parseFloat(predictedSoilHumidity.toFixed(1)),
+      predicted_co2_level: parseFloat(predictedCO2Level.toFixed(1)),
+      predicted_light_lux: parseFloat(predictedLightLux.toFixed(1))
     };
   }
 
   /**
    * Generate predictions with default values when no sensor data is available
    */
-  private async generatePredictionsWithDefaults(): Promise<number> {
+  async generatePredictionsWithDefaults(): Promise<number> {
     
-    // Default starting values for a typical greenhouse environment
     const baseTemp = 23.5;
     const baseAirHumidity = 55.0;
     const baseSoilHumidity = 48.0;
+    const baseCO2Level = 800.0; // Default base CO2 for defaults
+    const baseLightLux = 1000.0; // Default base Light for defaults
     
-    // Generate predictions with a higher resolution for short-term predictions
-    // and lower resolution for long-term predictions
+    await this.clearFuturePredictions(); // Clear future predictions before generating new defaults
+
     const now = new Date();
+    now.setSeconds(0,0); // Normalize time
     const batch: PredictionData[] = [];
     
-    // Generate 12 hours of predictions at 15-minute intervals (short-term, high resolution)
+    // Current prediction point for defaults
+    const currentDefaultPrediction = this.calculatePredictionPoint(
+      baseTemp, baseAirHumidity, baseSoilHumidity, baseCO2Level, baseLightLux,
+      now, 0, 0.1, 0.1
+    );
+    batch.push({
+      ...currentDefaultPrediction,
+      timestamp: now.toISOString().slice(0, 19).replace('T', ' ')
+    });
+
     const shortTermHours = 12;
-    const shortTermIntervals = shortTermHours * 4; // 15-minute intervals
+    const shortTermIntervals = shortTermHours * 4;
     
-    for (let i = 0; i < shortTermIntervals; i++) {
+    for (let i = 1; i <= shortTermIntervals; i++) { // Start from 1
       const timestamp = new Date(now);
-      const minutesOffset = i * 15; // 15-minute intervals
+      const minutesOffset = i * 15;
       timestamp.setMinutes(timestamp.getMinutes() + minutesOffset);
-      
-      // More precise predictions for the short term
       const hourOffset = minutesOffset / 60;
       const predictionPoint = this.calculatePredictionPoint(
-        baseTemp, baseAirHumidity, baseSoilHumidity, 
-        timestamp, hourOffset, 
-        0.2, // Lower random variation for short-term
-        1.5  // Lower multi-day trend impact
+        baseTemp, baseAirHumidity, baseSoilHumidity, baseCO2Level, baseLightLux, 
+        timestamp, hourOffset, 0.2, 1.5 
       );
-      
       batch.push({
         ...predictionPoint,
         timestamp: timestamp.toISOString().slice(0, 19).replace('T', ' ')
       });
     }
     
-    // Generate 30 days of predictions at hourly intervals (medium-term)
-    const mediumTermDays = 30; // Full month
-    const mediumTermIntervals = mediumTermDays * 24; // 1-hour intervals
-    
+    const mediumTermDays = 30;
+    const mediumTermIntervals = mediumTermDays * 24;
     const lastShortTermTime = new Date(now);
     lastShortTermTime.setMinutes(lastShortTermTime.getMinutes() + (shortTermIntervals * 15));
     
     for (let i = 0; i < mediumTermIntervals; i++) {
       const timestamp = new Date(lastShortTermTime);
-      timestamp.setHours(timestamp.getHours() + i); // 1 hour intervals
-      
-      // Standard predictions for medium term
+      timestamp.setHours(timestamp.getHours() + i);
       const hourOffset = shortTermHours + i;
       const predictionPoint = this.calculatePredictionPoint(
-        baseTemp, baseAirHumidity, baseSoilHumidity, 
-        timestamp, hourOffset, 
-        0.5, // Medium random variation
-        3.0  // Standard multi-day trend impact
+        baseTemp, baseAirHumidity, baseSoilHumidity, baseCO2Level, baseLightLux,
+        timestamp, hourOffset, 0.5, 3.0
       );
-      
       batch.push({
         ...predictionPoint,
         timestamp: timestamp.toISOString().slice(0, 19).replace('T', ' ')
       });
     }
     
-    // Save the batch of predictions
     return await this.savePredictionBatch(batch);
   }
 
@@ -345,6 +390,8 @@ class PredictionModel {
         p.predicted_temp,
         p.predicted_air_humidity,
         p.predicted_soil_humidity,
+        p.predicted_co2_level,
+        p.predicted_light_lux,
         p.timestamp // Already formatted for MySQL
       ]);
       
@@ -352,7 +399,7 @@ class PredictionModel {
       // Execute the batch insert
       const [result] = await pool.query(
         `INSERT INTO prediction_datas 
-         (predicted_temp, predicted_air_humidity, predicted_soil_humidity, timestamp) 
+         (predicted_temp, predicted_air_humidity, predicted_soil_humidity, predicted_co2_level, predicted_light_lux, timestamp) 
          VALUES ?`,
         [values]
       );
@@ -375,12 +422,14 @@ class PredictionModel {
       
       const [result] = await pool.query(
         `INSERT INTO prediction_datas 
-         (predicted_temp, predicted_air_humidity, predicted_soil_humidity, timestamp) 
-         VALUES (?, ?, ?, ?)`,
+         (predicted_temp, predicted_air_humidity, predicted_soil_humidity, predicted_co2_level, predicted_light_lux, timestamp) 
+         VALUES (?, ?, ?, ?, ?, ?)`,
         [
           data.predicted_temp,
           data.predicted_air_humidity,
           data.predicted_soil_humidity,
+          data.predicted_co2_level,
+          data.predicted_light_lux,
           data.timestamp
         ]
       );
