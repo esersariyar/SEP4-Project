@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
 import './App.css';
-import Dashboard from './components/Dashboard';
-import Home from './components/Home';
-import Header from './components/Header';
-import Login from './components/Login';
-import Devices from './components/Devices';
-import Settings from './components/Settings';
-import Predictions from './components/Predictions';
+import Dashboard from './components/pages/Dashboard';
+import Home from './components/pages/Home';
+import Header from './components/includes/Header';
+import Login from './components/pages/Login';
+import Devices from './components/pages/devices/Devices';
+import Settings from './components/pages/Settings';
+import Predictions from './components/pages/predictions/Predictions';
 
 interface User {
   id: number;

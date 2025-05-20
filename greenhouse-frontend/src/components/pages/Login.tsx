@@ -13,7 +13,13 @@ import {
   AlertDescription,
   Image,
 } from '@chakra-ui/react';
-import Header from './Header';
+import Header from '../includes/Header';
+import logoicontext from '../../assets/images/logoicontext.png';
+import grass from '../../assets/images/grass.png';
+import tree from '../../assets/images/tree.png';
+import flower from '../../assets/images/flower.png';
+import flowerPot from '../../assets/images/flower-pot.png';
+import butterfly from '../../assets/images/butterfly.png';
 
 interface LoginProps {
   onLogin: (token: string, user: any) => void;
@@ -167,7 +173,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         <Flex justifyContent="center" mb={[2, 2, 3, 4]}>
           <Box width={["56px", "72px", "110px", "140px"]} height={["56px", "72px", "110px", "140px"]}>
             <Image 
-              src={require('../assets/images/logoicontext.png')} 
+              src={logoicontext} 
               alt="Via Greenhouse Logo"
               width="100%"
               height="100%"
@@ -383,7 +389,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           width="100%"
           height={["40px", "50px", "70px", "90px"]}
           zIndex={12}
-          backgroundImage={`url('${require('../assets/images/grass.png')}')`}
+          backgroundImage={`url('${grass}')`}
           backgroundRepeat="repeat-x"
           backgroundSize={["auto 40px", "auto 60px", "auto 90px", "auto 120px"]}
           backgroundPosition="bottom center"
@@ -402,7 +408,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             zIndex={9}
           >
             <Image
-              src={require('../assets/images/tree.png')}
+              src={tree}
               alt="Tree"
               objectFit="contain"
               width="100%"
@@ -422,7 +428,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             zIndex={13}
           >
             <Image
-              src={require('../assets/images/flower.png')}
+              src={flower}
               alt="Orange Flower"
               objectFit="contain"
               width="100%"
@@ -442,7 +448,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             zIndex={13}
           >
             <Image
-              src={require('../assets/images/flower-pot.png')}
+              src={flowerPot}
               alt="Flower in Pot"
               objectFit="contain"
               width="100%"
@@ -462,7 +468,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             zIndex={13}
           >
             <Image
-              src={require('../assets/images/butterfly.png')}
+              src={butterfly}
               alt="Butterfly"
               objectFit="contain"
               width="100%"

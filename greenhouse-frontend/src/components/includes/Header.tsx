@@ -10,6 +10,7 @@ import {
   IconButton,
   useBreakpointValue,
 } from '@chakra-ui/react';
+import logoicon from '../../assets/images/logoicon.png';
 
 interface HeaderProps {
   isLoggedIn: boolean;
@@ -48,7 +49,7 @@ const Header: React.FC<HeaderProps> = ({ isLoggedIn, username, onLogout }) => {
         <Flex alignItems="center">
           <Box width="40px" height="40px" mr={2}>
             <Image 
-              src={require('../assets/images/logoicon.png')} 
+              src={logoicon} 
               alt="Via GreenHouse Logo"
               width="100%"
               height="100%"
