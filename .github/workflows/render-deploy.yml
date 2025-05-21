@@ -19,17 +19,3 @@ jobs:
       - name: Trigger Render Frontend Deploy
         if: secrets.RENDER_FRONTEND_DEPLOY_HOOK_URL != ''
         run: curl -X POST ${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK_URL }}
-
-# Notes for the user:
-# 1. This workflow assumes you have services set up on Render for your backend and frontend.
-# 2. Each service on Render should be configured to build from its Dockerfile 
-#    (greenhouse-backend/Dockerfile and greenhouse-frontend/Dockerfile).
-# 3. In your Render service settings, find the "Deploy Hook" URL.
-# 4. Add these URLs as GitHub Secrets in your repository settings:
-#    - RENDER_BACKEND_DEPLOY_HOOK_URL
-#    - RENDER_FRONTEND_DEPLOY_HOOK_URL
-# 5. If a deploy hook URL is not set as a secret, the corresponding deploy step will be skipped.
-# 6. Render's auto-deploy feature (if enabled on your services for the main branch) 
-#    might already handle deployments on push to main. In that case, this explicit 
-#    trigger workflow might be for manual dispatch or specific triggers, or you might 
-#    not need it if auto-deploy covers your needs. 
