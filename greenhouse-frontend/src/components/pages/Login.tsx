@@ -38,7 +38,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   const navigate = useNavigate();
 
-  const API_URL = 'http://localhost:3000';
+  const API_URL = process.env.BACKEND_URL || 'http://localhost:3000';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
