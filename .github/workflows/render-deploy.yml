@@ -1,0 +1,21 @@
+name: Render Deployment
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  trigger-render-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Trigger Render Backend Deploy
+        if: secrets.RENDER_BACKEND_DEPLOY_HOOK_URL != ''
+        run: curl -X POST ${{ secrets.RENDER_BACKEND_DEPLOY_HOOK_URL }}
+      
+      - name: Trigger Render Frontend Deploy
+        if: secrets.RENDER_FRONTEND_DEPLOY_HOOK_URL != ''
+        run: curl -X POST ${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK_URL }}

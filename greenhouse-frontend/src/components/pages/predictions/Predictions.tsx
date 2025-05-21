@@ -7,10 +7,10 @@ import {
   Spinner,
 } from '@chakra-ui/react';
 
-import UpcomingReadingsGrid from './UpcomingReadingsGrid';
-import RecommendedActions from './RecommendedActions';
+import UpcomingReadingsGrid from './UpcomingPredictedValues/UpcomingReadingsGrid';
+import RecommendedActions from './RecommendedActions/RecommendedActions';
 import PredictionChartContainer from './PredictionChartContainer';
-import UnderstandingPredictions from './UnderstandingPredictions';
+import UnderstandingPredictions from './UnderstandingYourPredictions/UnderstandingPredictions';
 import { Ranges, TimeRangeOption, SensorType } from './types';
 
 // Import the custom hook

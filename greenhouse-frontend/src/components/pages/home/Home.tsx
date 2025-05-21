@@ -14,6 +14,7 @@ import {
   useBreakpointValue,
 } from '@chakra-ui/react';
 import { FaSeedling, FaTemperatureHigh, FaWater } from 'react-icons/fa';
+import HomePageInfoCard from './HomePageInfoCard';
 
 const Home: React.FC = () => {
   const heroDir   = useBreakpointValue({ base: 'column', lg: 'row' });
@@ -111,30 +112,14 @@ const Home: React.FC = () => {
               { icon: FaTemperatureHigh, title: 'Key Metrics', desc: 'Monitor critical conditions: temperature, air humidity, CO2, and light intensity.', bg: 'green.50' },
               { icon: FaWater,            title: 'Live Data Stream',    desc: 'Access continuous sensor readings, updated every 10 seconds for real-time awareness.', bg: 'blue.50'  },
               { icon: FaSeedling,         title: 'Growth Optimization',      desc: 'Leverage data insights to enhance plant health and maximize growth potential.',     bg: 'teal.50'  },
-            ].map(({ icon, title, desc, bg }) => (
-              <GridItem key={title}>
-                <Flex
-                  direction="column"
-                  align="center"
-                  bg="white"
-                  p={{ base: 6, md: 8 }}
-                  borderRadius="lg"
-                  boxShadow="md"
-                  transition="transform 0.25s, box-shadow 0.25s"
-                  height="100%"
-                  _hover={{ transform: 'translateY(-4px)', boxShadow: 'xl' }}
-                >
-                  <Box bg={bg} p={4} borderRadius="full" mb={5} boxShadow="sm">
-                    <Icon as={icon} boxSize={{ base: 7, md: 8 }} color="gray.700" />
-                  </Box>
-                  <Heading as="h3" fontSize={{ base: 'lg', md: 'xl' }} color="green.600" mb={3}>
-                    {title}
-                  </Heading>
-                  <Text fontSize={{ base: 'sm', md: 'md' }} color="gray.600" textAlign="center">
-                    {desc}
-                  </Text>
-                </Flex>
-              </GridItem>
+            ].map((cardProps) => (
+              <HomePageInfoCard
+                key={cardProps.title}
+                icon={cardProps.icon}
+                title={cardProps.title}
+                desc={cardProps.desc}
+                bg={cardProps.bg}
+              />
             ))}
           </Grid>
         </Flex>

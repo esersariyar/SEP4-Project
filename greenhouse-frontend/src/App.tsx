@@ -3,11 +3,11 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
 import './App.css';
 import Dashboard from './components/pages/dashboard/Dashboard';
-import Home from './components/pages/Home';
+import Home from './components/pages/home/Home';
 import Header from './components/includes/Header';
 import Login from './components/pages/Login';
 import Devices from './components/pages/devices/Devices';
-import Settings from './components/pages/Settings';
+import Settings from './components/pages/settings/Settings';
 import Predictions from './components/pages/predictions/Predictions';
 
 interface User {
