@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { PredictionData, Ranges, Insight, ChartDataItem } from '../components/pages/predictions/types'; // Adjusted path
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+const API_URL = process.env.BACKEND_URL || 'http://localhost:3000';
 
 // Re-define or import constants if they are not passed as props (e.g., ranges for insights)
 // For simplicity, we will redefine ranges here if it's only used for insights generation within the hook

@@ -144,7 +144,7 @@ export default function Settings() {
   const getHeaderSize = () => windowSize.width < 768 ? "xl" : "2xl";
   const getTipsFontSize = () => windowSize.width < 768 ? "lg" : "2xl";
   
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+  const API_URL = process.env.BACKEND_URL || 'http://localhost:3000';
   const navigate = useNavigate();
   
   // Token refresh function

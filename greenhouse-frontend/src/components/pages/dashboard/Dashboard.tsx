@@ -77,7 +77,7 @@ const Dashboard: React.FC = () => {
   const updateTimeRef = useRef<number>(Date.now());
   
   const refreshInterval = 10000; 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+  const API_URL = process.env.BACKEND_URL || 'http://localhost:3000';
 
   // Auto refresh interval ref
   const autoRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null);

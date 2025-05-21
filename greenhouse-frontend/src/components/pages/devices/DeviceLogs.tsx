@@ -108,8 +108,8 @@ const DeviceLogs: React.FC<DeviceLogsProps> = ({
       // Fetch logs from API with authentication
       const response = await fetch(
         selectedDevice !== 'all' 
-          ? `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/devices/${selectedDevice}/logs?${params.toString()}`
-          : `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/devices/logs?${params.toString()}`,
+          ? `${process.env.BACKEND_URL || 'http://localhost:3000'}/api/devices/${selectedDevice}/logs?${params.toString()}`
+          : `${process.env.BACKEND_URL || 'http://localhost:3000'}/api/devices/logs?${params.toString()}`,
         {
           headers: {
             'Authorization': token ? `Bearer ${token}` : '',
@@ -178,7 +178,7 @@ const DeviceLogs: React.FC<DeviceLogsProps> = ({
       const token = getAuthToken();
       
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/devices`,
+        `${process.env.BACKEND_URL || 'http://localhost:3000'}/api/devices`,
         {
           headers: {
             'Authorization': token ? `Bearer ${token}` : '',
