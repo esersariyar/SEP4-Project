@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Flex, Text, Badge } from '@chakra-ui/react';
-import { Ranges } from '../types'; // Assuming types.ts is in the same directory
+import { Ranges } from '../types';
 
 interface UpcomingReadingCardProps {
   title: string;
