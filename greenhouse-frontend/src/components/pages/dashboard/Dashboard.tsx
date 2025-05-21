@@ -77,7 +77,7 @@ const Dashboard: React.FC = () => {
   const updateTimeRef = useRef<number>(Date.now());
   
   const refreshInterval = 10000; 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+  const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000';
 
   // Auto refresh interval ref
   const autoRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -104,7 +104,7 @@ const Dashboard: React.FC = () => {
     try {
       console.log(`Fetching data for range: ${range}`);
       
-      const response = await fetch(`${API_URL}/api/sensors/history?range=${range}`);
+      const response = await fetch(`${BACKEND_URL}/api/sensors/history?range=${range}`);
       
       if (!response.ok) {
         if (response.status === 404) {
@@ -223,13 +223,13 @@ const Dashboard: React.FC = () => {
     } finally {
       setHistoryLoading(false);
     }
-  }, [selectedRange, API_URL]);
+  }, [selectedRange, BACKEND_URL]);
 
   const fetchData = useCallback(async () => {
     setError(null);
     try {
       console.log('Fetching current sensor data...');
-      const currentResponse = await fetch(`${API_URL}/api/sensors`);
+      const currentResponse = await fetch(`${BACKEND_URL}/api/sensors`);
       
       if (!currentResponse.ok) {
         throw new Error(`HTTP error: ${currentResponse.status}`);
@@ -312,7 +312,7 @@ const Dashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [API_URL, fetchHistoricalData, historicalData.length]);
+  }, [BACKEND_URL, fetchHistoricalData, historicalData.length]);
 
   // Auto refresh toggle function
   const toggleAutoRefresh = () => {
@@ -555,7 +555,7 @@ const Dashboard: React.FC = () => {
             
             <Text mb={4}>{error}</Text>
             <Text fontWeight="medium">
-              Please make sure the backend server is running at <Badge colorScheme="red">{API_URL}</Badge>
+              Please make sure the backend server is running at <Badge colorScheme="red">{BACKEND_URL}</Badge>
             </Text>
             
             <Button

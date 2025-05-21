@@ -38,7 +38,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   const navigate = useNavigate();
 
-  const API_URL = 'http://localhost:3000';
+  const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +52,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           throw new Error('Username and password are required');
         }
 
-        const response = await fetch(`${API_URL}/api/auth/login`, {
+        const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -91,7 +91,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           throw new Error('Invitation code is required');
         }
 
-        const response = await fetch(`${API_URL}/api/auth/register`, {
+        const response = await fetch(`${BACKEND_URL}/api/auth/register`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -121,7 +121,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       }
     } catch (err) {
       if (err instanceof TypeError && err.message === 'Failed to fetch') {
-        setError(`Could not connect to server. API URL: ${API_URL} - Please make sure the backend is running.`);
+        setError(`Could not connect to server. Backend URL: ${BACKEND_URL} - Please make sure the backend is running.`);
       } else if (err instanceof Error) {
         setError(err.message);
       } else {

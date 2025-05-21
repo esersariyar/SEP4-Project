@@ -121,7 +121,7 @@ interface ActuatorDevice extends BaseDevice {
 type Device = SensorDevice | ActuatorDevice;
 
 // Since it's defined as '/api/devices' in the backend, we only specify the server address here
-const API_BASE_URL = "http://localhost:3000";
+const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3000";
 
 // Status indicator component
 const StatusDot = ({ isActive }: { isActive: boolean }) => {
@@ -178,7 +178,7 @@ const Devices: React.FC<{}> = () => {
       // setLoading(true); - Only set loading state to true on initial load
       
       // Clean fetch request like in Dashboard component
-      const response = await fetch(`${API_BASE_URL}/api/devices`);
+      const response = await fetch(`${BACKEND_URL}/api/devices`);
       
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
@@ -226,7 +226,7 @@ const Devices: React.FC<{}> = () => {
     } finally {
       setLoading(false);
     }
-  }, [API_BASE_URL]);
+  }, [BACKEND_URL]);
 
   useEffect(() => {
     // Get data during initial load and set loading state
@@ -314,7 +314,7 @@ const Devices: React.FC<{}> = () => {
 
         // Clean API request like in Dashboard
         const response = await fetch(
-          `${API_BASE_URL}/api/devices/${id}/toggle`,
+          `${BACKEND_URL}/api/devices/${id}/toggle`,
           {
             method: "PUT",
             headers: {
@@ -363,7 +363,7 @@ const Devices: React.FC<{}> = () => {
       }
     },
     [
-      API_BASE_URL,
+      BACKEND_URL,
       devices,
       setActivityLog,
       setDevices,

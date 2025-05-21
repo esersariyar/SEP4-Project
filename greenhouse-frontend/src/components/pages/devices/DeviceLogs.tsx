@@ -82,6 +82,8 @@ const DeviceLogs: React.FC<DeviceLogsProps> = ({
   // Auto-refresh interval (in milliseconds)
   const refreshInterval = 5000; // 5 seconds for more frequent updates
 
+  const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000';
+
   // Fetch device logs
   const fetchLogs = async () => {
     if (isInitialLoad) {
@@ -108,8 +110,8 @@ const DeviceLogs: React.FC<DeviceLogsProps> = ({
       // Fetch logs from API with authentication
       const response = await fetch(
         selectedDevice !== 'all' 
-          ? `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/devices/${selectedDevice}/logs?${params.toString()}`
-          : `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/devices/logs?${params.toString()}`,
+          ? `${BACKEND_URL}/api/devices/${selectedDevice}/logs?${params.toString()}`
+          : `${BACKEND_URL}/api/devices/logs?${params.toString()}`,
         {
           headers: {
             'Authorization': token ? `Bearer ${token}` : '',
@@ -178,7 +180,7 @@ const DeviceLogs: React.FC<DeviceLogsProps> = ({
       const token = getAuthToken();
       
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/devices`,
+        `${BACKEND_URL}/api/devices`,
         {
           headers: {
             'Authorization': token ? `Bearer ${token}` : '',

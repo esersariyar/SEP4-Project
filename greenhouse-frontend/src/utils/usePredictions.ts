@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { PredictionData, Ranges, Insight, ChartDataItem } from '../components/pages/predictions/types'; // Adjusted path
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000';
 
 // Re-define or import constants if they are not passed as props (e.g., ranges for insights)
 // For simplicity, we will redefine ranges here if it's only used for insights generation within the hook
@@ -71,7 +71,7 @@ export const usePredictions = (initialSelectedRange: string = '24h', initialSele
     setError(null);
     setIsRefreshing(true);
     try {
-      const response = await fetch(`${API_URL}/api/predictions?range=${rangeToFetch}`);
+      const response = await fetch(`${BACKEND_URL}/api/predictions?range=${rangeToFetch}`);
       if (!response.ok) throw new Error(`HTTP ${response.status} - ${response.statusText || 'Failed to fetch'}`);
       const data = await response.json();
       if (data.empty === true) {
@@ -110,7 +110,7 @@ export const usePredictions = (initialSelectedRange: string = '24h', initialSele
     try {
       setIsGenerating(true);
       setError(null);
-      const response = await fetch(`${API_URL}/api/predictions/generate`, {
+      const response = await fetch(`${BACKEND_URL}/api/predictions/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -127,7 +127,7 @@ export const usePredictions = (initialSelectedRange: string = '24h', initialSele
     } finally {
       setIsGenerating(false);
     }
-  }, [isGenerating, selectedRange, fetchPredictions, showMessage, API_URL]);
+  }, [isGenerating, selectedRange, fetchPredictions, showMessage, BACKEND_URL]);
   
   const handleRangeChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const newRange = e.target.value;
