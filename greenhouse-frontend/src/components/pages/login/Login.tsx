@@ -197,22 +197,24 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           {isLogin ? 'Welcome to Via GreenHouse' : 'Join Via GreenHouse'}
         </Heading>
 
-        {error && (
-          <Box
-            bg="red.50"
-            color="red.700"
-            borderRadius="md"
-            mb={[2, 3, 4, 6]}
-            fontSize={["sm", "md", "md", "lg"]}
-            px={4}
-            py={3}
-            borderLeft="4px solid"
-            borderColor="red.400"
-            fontWeight="medium"
-          >
-            {error}
-          </Box>
-        )}
+        <Box
+          role="alert"
+          bg={error ? "red.50" : "transparent"}
+          color={error ? "red.700" : "transparent"}
+          borderRadius="md"
+          mb={[2, 3, 4, 6]}
+          fontSize={["sm", "md", "md", "lg"]}
+          px={4}
+          py={3}
+          borderLeft={error ? "4px solid" : "none"}
+          borderColor={error ? "red.400" : "transparent"}
+          fontWeight="medium"
+          minH="48px"
+          display="flex"
+          alignItems="center"
+        >
+          {error || ' '}
+        </Box>
 
         <form onSubmit={handleSubmit} style={{ width: '100%' }}>
           <VStack gap={[2, 3, 4, 6]} alignItems={'stretch'} width="100%">
