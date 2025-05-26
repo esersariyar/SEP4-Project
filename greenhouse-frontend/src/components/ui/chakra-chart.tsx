@@ -147,6 +147,7 @@ export const ChakraLineChart: React.FC<ChakraLineChartProps> = ({
   if (isLoading) {
     return (
       <Box
+        data-testid="chart-loading"
         height={`${height}px`}
         bg="white"
         borderRadius="lg"
@@ -166,6 +167,7 @@ export const ChakraLineChart: React.FC<ChakraLineChartProps> = ({
   if (validData.length === 0) {
     return (
       <Box
+        data-testid="chart-empty"
         height={`${height}px`}
         bg="white"
         borderRadius="lg"
@@ -187,6 +189,7 @@ export const ChakraLineChart: React.FC<ChakraLineChartProps> = ({
 
   return (
     <Box
+      data-testid="chart-container"
       bg="white"
       borderRadius="lg"
       boxShadow="sm"
@@ -196,7 +199,7 @@ export const ChakraLineChart: React.FC<ChakraLineChartProps> = ({
       height={`${height + 50}px`}
     >
       {title && (
-        <Heading as="h3" size="sm" mb={3} color="blue.500">
+        <Heading as="h3" size="sm" mb={3} color="blue.500" data-testid="chart-title">
           {title}
         </Heading>
       )}
@@ -243,28 +246,30 @@ export const ChakraLineChart: React.FC<ChakraLineChartProps> = ({
               paddingTop: '10px'
             }}
           />
-          {/* Reference lines - without labels */}
           {referencePoints && referencePoints.map((point, index) => (
             <ReferenceLine 
               key={`ref-line-${index}`}
-              y={point.y} 
-              stroke={point.color} 
-              strokeDasharray={point.strokeDasharray || "3 3"} 
-              strokeWidth={1.5}
+              y={point.y}
+              stroke={point.color}
+              strokeDasharray={point.strokeDasharray}
+              label={{
+                value: point.label,
+                position: 'right',
+                fill: point.color,
+                fontSize: 12
+              }}
             />
           ))}
-          {yAxisKeys.map(({ key, color, name }) => (
+          {yAxisKeys.map((keyObj, index) => (
             <Line
-              key={key}
+              key={`line-${index}`}
               type="monotone"
-              dataKey={key}
-              stroke={color}
-              name={name}
-              strokeWidth={2.5}
-              dot={{ r: 4, fill: color, strokeWidth: 1 }}
-              activeDot={{ r: 7, strokeWidth: 1 }}
-              isAnimationActive={true}
-              animationDuration={500}
+              dataKey={keyObj.key}
+              name={keyObj.name}
+              stroke={keyObj.color}
+              strokeWidth={2}
+              dot={{ r: 4 }}
+              activeDot={{ r: 6 }}
             />
           ))}
         </RechartsLineChart>

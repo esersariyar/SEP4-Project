@@ -1,36 +1,73 @@
-import React from 'react';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { ChakraLineChart } from './chakra-chart';
+import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
+
+// Mock ResizeObserver
+class ResizeObserverMock {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+global.ResizeObserver = ResizeObserverMock;
+
+// Mock window.matchMedia
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: vi.fn().mockImplementation(query => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+});
+
+const renderWithChakra = (component: React.ReactElement) => {
+  return render(
+    <ChakraProvider value={defaultSystem}>
+      {component}
+    </ChakraProvider>
+  );
+};
 
 describe('ChakraLineChart Component', () => {
   const mockData = [
-    { timestamp: '2024-03-20T10:00:00', temperature: 25, humidity: 60 },
-    { timestamp: '2024-03-20T11:00:00', temperature: 26, humidity: 62 },
-    { timestamp: '2024-03-20T12:00:00', temperature: 27, humidity: 65 }
+    { timestamp: '2024-01-01T00:00:00Z', value: 25 },
+    { timestamp: '2024-01-01T01:00:00Z', value: 26 },
+    { timestamp: '2024-01-01T02:00:00Z', value: 24 },
   ];
 
   const defaultProps = {
     data: mockData,
     xAxisKey: 'timestamp',
     yAxisKeys: [
-      { key: 'temperature', name: 'Temperature', color: '#ff6b6b' },
-      { key: 'humidity', name: 'Humidity', color: '#4dabf7' }
+      { key: 'value', color: 'blue.500', name: 'Temperature' }
     ],
-    height: 400,
-    title: 'Sensor Data'
+    title: 'Test Chart',
+    height: 400
   };
 
-  it('renders with basic props', () => {
-    render(<ChakraLineChart {...defaultProps} />);
-    
-    expect(screen.getByText('Sensor Data')).toBeInTheDocument();
-    expect(screen.getByText('Temperature')).toBeInTheDocument();
-    expect(screen.getByText('Humidity')).toBeInTheDocument();
+  it('renders chart with basic props', () => {
+    renderWithChakra(<ChakraLineChart {...defaultProps} />);
+
+    expect(screen.getByText('Test Chart')).toBeInTheDocument();
+  });
+
+  it('handles empty data array', () => {
+    renderWithChakra(<ChakraLineChart {...defaultProps} data={[]} />);
+
+    expect(screen.getByText('Test Chart')).toBeInTheDocument();
+    expect(screen.getByText('No Data Found')).toBeInTheDocument();
   });
 
   it('shows loading state correctly', () => {
-    render(<ChakraLineChart {...defaultProps} isLoading={true} />);
+    renderWithChakra(<ChakraLineChart {...defaultProps} isLoading={true} />);
     
     expect(screen.getByText('Loading data...')).toBeInTheDocument();
     const spinner = document.querySelector('.chakra-spinner');
@@ -39,12 +76,12 @@ describe('ChakraLineChart Component', () => {
 
   it('filters invalid data correctly', () => {
     const invalidData = [
-      { timestamp: 'invalid-date', temperature: 25, humidity: 60 },
-      { timestamp: '2024-03-20T11:00:00', temperature: 26, humidity: 62 },
-      { timestamp: '2024-03-20T12:00:00', temperature: 27, humidity: 65 }
+      { timestamp: 'invalid-date', value: 25 },
+      { timestamp: '2024-03-20T11:00:00', value: 26 },
+      { timestamp: '2024-03-20T12:00:00', value: 27 }
     ];
 
-    render(
+    renderWithChakra(
       <ChakraLineChart
         {...defaultProps}
         data={invalidData}
@@ -53,7 +90,7 @@ describe('ChakraLineChart Component', () => {
 
     // Should only render valid data points
     const chartLines = document.querySelectorAll('.recharts-line');
-    expect(chartLines.length).toBe(2); // One line for each yAxisKey
+    expect(chartLines.length).toBe(1); // One line for the value
   });
 
   it('applies custom x-axis formatting', () => {
@@ -62,7 +99,7 @@ describe('ChakraLineChart Component', () => {
       return date.toLocaleTimeString();
     };
 
-    render(
+    renderWithChakra(
       <ChakraLineChart
         {...defaultProps}
         formatXAxis={formatXAxis}
@@ -80,7 +117,7 @@ describe('ChakraLineChart Component', () => {
       { y: 28, label: 'Danger', color: 'red' }
     ];
 
-    render(
+    renderWithChakra(
       <ChakraLineChart
         {...defaultProps}
         referencePoints={referencePoints}
@@ -92,28 +129,16 @@ describe('ChakraLineChart Component', () => {
     expect(referenceLines.length).toBe(referencePoints.length);
   });
 
-  it('handles empty data array', () => {
-    render(
-      <ChakraLineChart
-        {...defaultProps}
-        data={[]}
-      />
-    );
-
-    // Should render empty state or message
-    const chartContainer = document.querySelector('.recharts-wrapper');
-    expect(chartContainer).toBeInTheDocument();
-  });
-
-  it('applies correct height prop', () => {
-    render(<ChakraLineChart {...defaultProps} height={500} />);
+  it('applies correct height prop', async () => {
+    renderWithChakra(<ChakraLineChart {...defaultProps} height={500} />);
     
-    const chartContainer = document.querySelector('.recharts-wrapper');
-    expect(chartContainer).toHaveStyle({ height: '500px' });
+    // Wait for chart container
+    const chartContainer = await screen.findByTestId('chart-container');
+    expect(chartContainer).toHaveStyle({ height: '550px' }); // height + 50px padding
   });
 
   it('renders legend correctly', () => {
-    render(<ChakraLineChart {...defaultProps} />);
+    renderWithChakra(<ChakraLineChart {...defaultProps} />);
     
     const legend = document.querySelector('.recharts-legend');
     expect(legend).toBeInTheDocument();

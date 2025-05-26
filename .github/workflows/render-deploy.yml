@@ -6,7 +6,18 @@ on:
   workflow_dispatch:
 
 jobs:
+  check-environment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check environment variables
+        run: |
+          if [ -z "${{ secrets.RENDER_BACKEND_DEPLOY_HOOK_URL }}" ] || [ -z "${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK_URL }}" ]; then
+            echo "Missing required environment variables"
+            exit 1
+          fi
+
   trigger-render-deploy:
+    needs: check-environment
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -14,16 +25,16 @@ jobs:
 
       - name: Trigger Render Backend Deploy
         run: |
-          if [ -n "${{ secrets.RENDER_BACKEND_DEPLOY_HOOK_URL }}" ]; then
-            curl -X POST "${{ secrets.RENDER_BACKEND_DEPLOY_HOOK_URL }}"
-          else
-            echo "No backend deploy hook set, skipping."
-          fi
+          curl -X POST "${{ secrets.RENDER_BACKEND_DEPLOY_HOOK_URL }}"
+        continue-on-error: true
 
       - name: Trigger Render Frontend Deploy
         run: |
-          if [ -n "${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK_URL }}" ]; then
-            curl -X POST "${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK_URL }}"
-          else
-            echo "No frontend deploy hook set, skipping."
-          fi
+          curl -X POST "${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK_URL }}"
+        continue-on-error: true
+
+      - name: Check deployment status
+        run: |
+          echo "Deployment triggered. Check Render dashboard for status."
+          echo "Backend URL: ${{ secrets.RENDER_BACKEND_URL }}"
+          echo "Frontend URL: ${{ secrets.RENDER_FRONTEND_URL }}"
