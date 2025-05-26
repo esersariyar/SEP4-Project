@@ -94,23 +94,23 @@ const PredictionChartContainer: React.FC<PredictionChartContainerProps> = ({
       </Flex>
 
       <Box>
-        <Flex 
-          borderBottom="1px solid" 
-          borderColor="gray.200" 
+        {/* Simple fixed-width tab solution with horizontal scrolling */}
+        <Box 
+          overflowX="auto" 
           mb={4}
-          overflowX="auto"
-          width="100%"
-          position="relative"
           css={{
-            WebkitOverflowScrolling: 'touch', // Smooth scrolling on iOS
-            scrollbarWidth: 'none', // Hide scrollbar on Firefox
-            msOverflowStyle: 'none', // Hide scrollbar on IE/Edge
-            '&::-webkit-scrollbar': { // Hide scrollbar on Chrome/Safari
-              display: 'none'
-            }
+            '&::-webkit-scrollbar': { height: '4px' },
+            '&::-webkit-scrollbar-track': { background: '#f1f1f1' },
+            '&::-webkit-scrollbar-thumb': { background: '#888', borderRadius: '4px' },
           }}
         >
-          <Flex minWidth="max-content" width="100%">
+          <Box 
+            display="flex" 
+            borderBottom="1px solid" 
+            borderColor="gray.200"
+            width="max-content"
+            minWidth="100%"
+          >
             {sensorTypes.map((type) => (
               <Box
                 key={type.id}
@@ -121,14 +121,15 @@ const PredictionChartContainer: React.FC<PredictionChartContainerProps> = ({
                 color={selectedSensorType === type.id ? "green.500" : "gray.600"}
                 fontWeight={selectedSensorType === type.id ? "bold" : "normal"}
                 onClick={() => setSelectedSensorType(type.id)}
-                minWidth="120px"
+                minWidth={`${100 / sensorTypes.length}%`}
                 flexShrink={0}
+                textAlign="center"
               >
                 {type.label}
               </Box>
             ))}
-          </Flex>
-        </Flex>
+          </Box>
+        </Box>
 
         <Box>
           {sensorTypes.map(type => (
