@@ -94,7 +94,6 @@ const PredictionChartContainer: React.FC<PredictionChartContainerProps> = ({
       </Flex>
 
       <Box>
-        {/* Simple fixed-width tab solution with horizontal scrolling */}
         <Box 
           overflowX="auto" 
           mb={4}
