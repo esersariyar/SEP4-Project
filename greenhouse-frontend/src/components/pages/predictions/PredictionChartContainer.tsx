@@ -99,22 +99,35 @@ const PredictionChartContainer: React.FC<PredictionChartContainerProps> = ({
           borderColor="gray.200" 
           mb={4}
           overflowX="auto"
+          width="100%"
+          position="relative"
+          css={{
+            WebkitOverflowScrolling: 'touch', // Smooth scrolling on iOS
+            scrollbarWidth: 'none', // Hide scrollbar on Firefox
+            msOverflowStyle: 'none', // Hide scrollbar on IE/Edge
+            '&::-webkit-scrollbar': { // Hide scrollbar on Chrome/Safari
+              display: 'none'
+            }
+          }}
         >
-          {sensorTypes.map((type) => (
-            <Box
-              key={type.id}
-              px={4}
-              py={2}
-              cursor="pointer"
-              borderBottom={selectedSensorType === type.id ? "2px solid #38a169" : "none"}
-              color={selectedSensorType === type.id ? "green.500" : "gray.600"}
-              fontWeight={selectedSensorType === type.id ? "bold" : "normal"}
-              onClick={() => setSelectedSensorType(type.id)}
-              minWidth="120px"
-            >
-              {type.label}
-            </Box>
-          ))}
+          <Flex minWidth="max-content" width="100%">
+            {sensorTypes.map((type) => (
+              <Box
+                key={type.id}
+                px={4}
+                py={2}
+                cursor="pointer"
+                borderBottom={selectedSensorType === type.id ? "2px solid #38a169" : "none"}
+                color={selectedSensorType === type.id ? "green.500" : "gray.600"}
+                fontWeight={selectedSensorType === type.id ? "bold" : "normal"}
+                onClick={() => setSelectedSensorType(type.id)}
+                minWidth="120px"
+                flexShrink={0}
+              >
+                {type.label}
+              </Box>
+            ))}
+          </Flex>
         </Flex>
 
         <Box>
