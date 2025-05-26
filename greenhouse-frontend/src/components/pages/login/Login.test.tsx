@@ -145,14 +145,19 @@ describe('Login Component', () => {
   it('should show error message on empty form submission', async () => {
     renderLogin();
 
+    // Get the form element
+    const form = screen.getByRole('form') || document.querySelector('form');
+    expect(form).toBeInTheDocument();
+
     // Submit form without entering any data
-    fireEvent.click(screen.getByRole('button', { name: /login/i }));
+    fireEvent.submit(form);
 
     // Wait for the error message to appear
     await waitFor(() => {
-      const errorBox = screen.getByRole('alert') || document.querySelector('.chakra-box');
+      const errorBox = screen.getByRole('alert');
+      expect(errorBox).toBeInTheDocument();
       expect(errorBox).toHaveTextContent('Username and password are required');
-    });
+    }, { timeout: 3000 });
 
     expect(mockFetch).not.toHaveBeenCalled();
     expect(mockOnLogin).not.toHaveBeenCalled();

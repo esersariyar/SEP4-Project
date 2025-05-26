@@ -216,7 +216,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           {error || ' '}
         </Box>
 
-        <form onSubmit={handleSubmit} style={{ width: '100%' }}>
+        <form 
+          role="form"
+          onSubmit={handleSubmit} 
+          style={{ width: '100%' }}
+        >
           <VStack gap={[2, 3, 4, 6]} alignItems={'stretch'} width="100%">
             <Box mb={[1, 1, 2, 2]}>
               <Text mb={[0.5, 1, 1, 1.5]} fontSize={["sm", "md", "md", "lg"]} fontWeight={'semibold'}>Username *</Text>
